@@ -33,7 +33,7 @@ struct Cli {
     all: bool,
 
     /// Sort order for entries
-    #[arg(short, long, value_enum, default_value_t = SortMode::Name)]
+    #[arg(short, long, value_enum, default_value_t = SortMode::Kind)]
     sort: SortMode,
 }
 

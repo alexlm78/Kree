@@ -50,23 +50,23 @@ kree /some/path -d 5 -f config
 | `-d` | `--depth` | Maximum depth to traverse                  | `1`     |
 | `-f` | `--find`  | Fuzzy search for a file or directory name  |         |
 | `-a` | `--all`   | Show hidden files and ignore `.kreeignore` | `false` |
-| `-s` | `--sort`  | Sort order: `name` or `kind`               | `name`  |
+| `-s` | `--sort`  | Sort order: `name` or `kind`               | `kind`  |
 
 ### Example output
 
 ```shell
 └── .
-     ├── Cargo.lock
-     ├── Cargo.toml
-     ├── LICENSE
-     ├── README.md
      ├── src
      │    ├── ignore.rs
      │    ├── main.rs
      │    ├── render.rs
      │    ├── search.rs
      │    └── tree.rs
-     └── target
+     ├── target
+     ├── Cargo.lock
+     ├── Cargo.toml
+     ├── LICENSE
+     └── README.md
 ```
 
 ## `.kreeignore`
