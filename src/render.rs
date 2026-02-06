@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use colored::Colorize;
+use colored::{ColoredString, Colorize};
 
 use crate::tree::TreeNode;
 
@@ -10,7 +10,34 @@ fn colorize_name(name: &str, path: &Path) -> String {
     } else if is_executable(path) {
         name.green().bold().to_string()
     } else {
-        name.bright_white().to_string()
+        colorize_by_extension(name, path).to_string()
+    }
+}
+
+fn colorize_by_extension<'a>(name: &'a str, path: &Path) -> ColoredString {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+
+    match ext.to_lowercase().as_str() {
+        // Rust
+        "rs" => name.truecolor(255, 165, 0),
+        // Web
+        "js" | "ts" | "jsx" | "tsx" => name.yellow(),
+        "html" | "css" | "scss" => name.magenta(),
+        // Data / Config
+        "json" | "toml" | "yaml" | "yml" | "xml" | "csv" => name.cyan(),
+        // Documentation
+        "md" | "txt" | "rst" => name.bright_yellow(),
+        // Images
+        "png" | "jpg" | "jpeg" | "gif" | "svg" | "ico" | "bmp" | "webp" => name.bright_magenta(),
+        // Archives
+        "zip" | "tar" | "gz" | "bz2" | "xz" | "rar" | "7z" => name.red(),
+        // Lock files
+        "lock" => name.bright_black(),
+        // Default
+        _ => name.bright_white(),
     }
 }
 
