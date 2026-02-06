@@ -35,10 +35,18 @@ struct Cli {
     /// Sort order for entries
     #[arg(short, long, value_enum, default_value_t = SortMode::Kind)]
     sort: SortMode,
+
+    /// Disable colored output
+    #[arg(long)]
+    no_color: bool,
 }
 
 fn main() {
     let cli = Cli::parse();
+
+    if cli.no_color {
+        colored::control::set_override(false);
+    }
 
     if cli.depth > 60 {
         println!("Depth overflow!!\nAre you serious?");
