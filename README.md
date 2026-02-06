@@ -49,15 +49,19 @@ kree /some/path -d 5 -f config
 ### Example output
 
 ```shell
-my-project
+.
+├── Cargo.lock
 ├── Cargo.toml
+├── CLAUDE.md
+├── LICENSE
 ├── README.md
-└── src
-    ├── ignore.rs
-    ├── main.rs
-    ├── render.rs
-    ├── search.rs
-    └── tree.rs
+├── src
+│    ├── ignore.rs
+│    ├── main.rs
+│    ├── render.rs
+│    ├── search.rs
+│    └── tree.rs
+└── target
 ```
 
 ## `.kreeignore`

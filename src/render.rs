@@ -1,11 +1,12 @@
 use crate::tree::TreeNode;
 
 pub fn render_tree(root: &TreeNode) {
-    println!("{}", root.name);
+    println!("└── {}", root.name);
     let child_count = root.children.len();
     for (i, child) in root.children.iter().enumerate() {
         let is_last = i == child_count - 1;
-        render_node(child, 0, is_last, if is_last { 1 } else { 0 });
+        let mask = if is_last { 0b11u64 } else { 0b01u64 };
+        render_node(child, 1, is_last, mask);
     }
 }
 
