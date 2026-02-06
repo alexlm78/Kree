@@ -11,7 +11,7 @@ use clap::Parser;
 use ignore::IgnoreFilter;
 use render::render_tree;
 use search::{fuzzy_search, print_results};
-use tree::load_tree;
+use tree::{load_tree, SortMode};
 
 #[derive(Parser)]
 #[command(name = "kree", version, about = "A directory tree visualizer and fuzzy finder")]
@@ -31,6 +31,10 @@ struct Cli {
     /// Show hidden files and ignore .kreeignore
     #[arg(short, long)]
     all: bool,
+
+    /// Sort order for entries
+    #[arg(short, long, value_enum, default_value_t = SortMode::Name)]
+    sort: SortMode,
 }
 
 fn main() {
@@ -46,7 +50,7 @@ fn main() {
         print_results(&results);
     } else {
         let filter = IgnoreFilter::new(!cli.all);
-        let root = load_tree(&cli.path, cli.depth, 0, &filter);
+        let root = load_tree(&cli.path, cli.depth, 0, &filter, cli.sort);
         render_tree(&root);
     }
 }

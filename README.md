@@ -9,6 +9,8 @@ A directory tree visualizer and fuzzy finder for the terminal, written in Rust.
 - **Ignore rules** — Supports a `.kreeignore` file to exclude specific entries from the tree.
 - **Hidden files** — Dot-prefixed files are hidden by default; use `-a` to reveal them.
 - **Configurable depth** — Control how deep the tree traversal goes (max 60).
+- **Sort modes** — Sort alphabetically (`-s name`) or group directories first (`-s kind`).
+- **Colored output** — Directories in blue, executables in green, regular files in bright white.
 
 ## Installation
 
@@ -33,6 +35,9 @@ kree -f main
 # Show hidden files and disable .kreeignore filtering
 kree -a
 
+# Sort by kind (directories first)
+kree -s kind
+
 # Combine options
 kree /some/path -d 5 -f config
 ```
@@ -45,23 +50,23 @@ kree /some/path -d 5 -f config
 | `-d` | `--depth` | Maximum depth to traverse                  | `1`     |
 | `-f` | `--find`  | Fuzzy search for a file or directory name  |         |
 | `-a` | `--all`   | Show hidden files and ignore `.kreeignore` | `false` |
+| `-s` | `--sort`  | Sort order: `name` or `kind`               | `name`  |
 
 ### Example output
 
 ```shell
-.
-├── Cargo.lock
-├── Cargo.toml
-├── CLAUDE.md
-├── LICENSE
-├── README.md
-├── src
-│    ├── ignore.rs
-│    ├── main.rs
-│    ├── render.rs
-│    ├── search.rs
-│    └── tree.rs
-└── target
+└── .
+     ├── Cargo.lock
+     ├── Cargo.toml
+     ├── LICENSE
+     ├── README.md
+     ├── src
+     │    ├── ignore.rs
+     │    ├── main.rs
+     │    ├── render.rs
+     │    ├── search.rs
+     │    └── tree.rs
+     └── target
 ```
 
 ## `.kreeignore`
