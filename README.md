@@ -79,6 +79,10 @@ target
 dist
 ```
 
+## Acknowledgments
+
+This project is inspired by [Dree](https://github.com/ujjwall-R/Dree) by [@ujjwall-R](https://github.com/ujjwall-R), a terminal-based file exploration tool written in C++. Kree is a reimplementation in Rust with its own approach to tree rendering, fuzzy search, and colored output.
+
 ## License
 
 MIT
