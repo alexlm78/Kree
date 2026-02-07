@@ -7,7 +7,7 @@ pub struct IgnoreFilter {
 }
 
 impl IgnoreFilter {
-    pub fn new(active: bool) -> Self {
+    pub fn new(active: bool, config_patterns: &[String]) -> Self {
         if !active {
             return IgnoreFilter {
                 excluded: HashSet::new(),
@@ -15,7 +15,7 @@ impl IgnoreFilter {
             };
         }
 
-        let excluded = match fs::read_to_string(".kreeignore") {
+        let mut excluded: HashSet<String> = match fs::read_to_string(".kreeignore") {
             Ok(contents) => contents
                 .lines()
                 .filter(|line| !line.trim().is_empty())
@@ -23,6 +23,10 @@ impl IgnoreFilter {
                 .collect(),
             Err(_) => HashSet::new(),
         };
+
+        for pattern in config_patterns {
+            excluded.insert(pattern.clone());
+        }
 
         IgnoreFilter {
             excluded,

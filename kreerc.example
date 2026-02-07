@@ -1,0 +1,42 @@
+# ~/.kreerc — Kree configuration file
+# Copy this file to ~/.kreerc and customize to your liking.
+# CLI arguments always override these values.
+
+[defaults]
+# Maximum depth to traverse (default: 1)
+depth = 3
+
+# Sort order: "name" (alphabetical) or "kind" (directories first)
+sort = "kind"
+
+# Disable colored output (default: false)
+no_color = false
+
+# Show hidden (dot) files and ignore .kreeignore (default: false)
+all = false
+
+[colors]
+# Custom colors per file extension.
+# Values can be named ANSI colors or hex truecolor (#RRGGBB).
+#
+# Named colors:
+#   black, red, green, yellow, blue, magenta, cyan, white,
+#   bright_black, bright_red, bright_green, bright_yellow,
+#   bright_blue, bright_magenta, bright_cyan, bright_white
+#
+# Hyphens and underscores are interchangeable (bright-red = bright_red).
+
+rs = "#FF6600"       # Rust — orange
+py = "green"         # Python
+go = "cyan"          # Go
+js = "yellow"        # JavaScript
+ts = "yellow"        # TypeScript
+rb = "red"           # Ruby
+java = "bright_red"  # Java
+log = "bright_black" # Log files — dimmed
+
+[ignore]
+# File/directory names to always exclude from the tree.
+# These are merged with any local .kreeignore file.
+# The -a flag overrides both.
+patterns = ["target", "node_modules", "dist", "__pycache__", ".git"]

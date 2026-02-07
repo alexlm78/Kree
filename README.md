@@ -11,6 +11,7 @@ A directory tree visualizer and fuzzy finder for the terminal, written in Rust.
 - **Configurable depth** — Control how deep the tree traversal goes (max 60).
 - **Sort modes** — Sort alphabetically (`-s name`) or group directories first (`-s kind`).
 - **Colored output** — Directories in blue, executables in green, regular files in bright white.
+- **Configuration file** — Persistent defaults, custom colors, and global ignore patterns via `~/.kreerc`.
 
 ## Installation
 
@@ -68,6 +69,61 @@ kree /some/path -d 5 -f config
      ├── LICENSE
      └── README.md
 ```
+
+## Configuration (`~/.kreerc`)
+
+Kree supports a TOML configuration file at `~/.kreerc` for setting persistent defaults, custom extension colors, and global ignore patterns. CLI arguments always override config values.
+
+### Sample config
+
+A full example is available at [`kreerc.example`](kreerc.example) in the root of this repository. Copy it to get started:
+
+```shell
+cp kreerc.example ~/.kreerc
+```
+
+```toml
+# ~/.kreerc — Kree configuration file
+# CLI arguments always override these values.
+
+[defaults]
+depth = 3              # default traversal depth
+sort = "kind"          # "name" or "kind"
+no_color = false       # disable colored output
+all = false            # show hidden files
+
+[colors]
+# Named ANSI colors or hex truecolor (#RRGGBB)
+rs = "#FF6600"         # Rust — orange
+py = "green"           # Python
+go = "cyan"            # Go
+js = "yellow"          # JavaScript
+java = "bright_red"    # Java
+log = "bright_black"   # Log files — dimmed
+
+[ignore]
+# Merged with local .kreeignore; -a flag overrides both
+patterns = ["target", "node_modules", "dist", "__pycache__", ".git"]
+```
+
+### Sections
+
+| Section      | Key        | Type       | Description                                         |
+|--------------|------------|------------|-----------------------------------------------------|
+| `[defaults]` | `depth`    | integer    | Default traversal depth (overridden by `-d`)        |
+| `[defaults]` | `sort`     | string     | `"name"` or `"kind"` (overridden by `-s`)           |
+| `[defaults]` | `no_color` | boolean    | Disable colors (overridden by `--no-color`)         |
+| `[defaults]` | `all`      | boolean    | Show hidden files (overridden by `-a`)              |
+| `[colors]`   | `<ext>`    | string     | Color for file extension — named color or hex code  |
+| `[ignore]`   | `patterns` | string[]   | Filenames to always exclude (merged with `.kreeignore`) |
+
+### Supported colors
+
+Named ANSI colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright_black`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white`.
+
+Hex truecolor: any `#RRGGBB` value (e.g. `#FF6600`).
+
+Hyphens and underscores are interchangeable in color names (e.g. `bright-red` and `bright_red` both work).
 
 ## `.kreeignore`
 

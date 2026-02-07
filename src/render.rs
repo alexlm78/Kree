@@ -1,43 +1,127 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use colored::{ColoredString, Colorize};
 
 use crate::tree::TreeNode;
 
-fn colorize_name(name: &str, path: &Path) -> String {
+pub type ColorMap = HashMap<String, (u8, u8, u8)>;
+
+fn parse_color(name: &str) -> Option<(u8, u8, u8)> {
+    if let Some(hex) = name.strip_prefix('#') {
+        if hex.len() == 6 {
+            let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+            let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+            let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+            return Some((r, g, b));
+        }
+        return None;
+    }
+
+    let normalized = name.replace('-', "_");
+    match normalized.as_str() {
+        "black" => Some((0, 0, 0)),
+        "red" => Some((205, 0, 0)),
+        "green" => Some((0, 205, 0)),
+        "yellow" => Some((205, 205, 0)),
+        "blue" => Some((0, 0, 238)),
+        "magenta" => Some((205, 0, 205)),
+        "cyan" => Some((0, 205, 205)),
+        "white" => Some((229, 229, 229)),
+        "bright_black" => Some((127, 127, 127)),
+        "bright_red" => Some((255, 0, 0)),
+        "bright_green" => Some((0, 255, 0)),
+        "bright_yellow" => Some((255, 255, 0)),
+        "bright_blue" => Some((92, 92, 255)),
+        "bright_magenta" => Some((255, 0, 255)),
+        "bright_cyan" => Some((0, 255, 255)),
+        "bright_white" => Some((255, 255, 255)),
+        _ => None,
+    }
+}
+
+pub fn build_color_map(user_colors: &HashMap<String, String>) -> ColorMap {
+    let defaults: &[(&str, (u8, u8, u8))] = &[
+        // Rust
+        ("rs", (255, 165, 0)),
+        // Web
+        ("js", (205, 205, 0)),
+        ("ts", (205, 205, 0)),
+        ("jsx", (205, 205, 0)),
+        ("tsx", (205, 205, 0)),
+        ("html", (205, 0, 205)),
+        ("css", (205, 0, 205)),
+        ("scss", (205, 0, 205)),
+        // Data / Config
+        ("json", (0, 205, 205)),
+        ("toml", (0, 205, 205)),
+        ("yaml", (0, 205, 205)),
+        ("yml", (0, 205, 205)),
+        ("xml", (0, 205, 205)),
+        ("csv", (0, 205, 205)),
+        // Documentation
+        ("md", (255, 255, 0)),
+        ("txt", (255, 255, 0)),
+        ("rst", (255, 255, 0)),
+        // Images
+        ("png", (255, 0, 255)),
+        ("jpg", (255, 0, 255)),
+        ("jpeg", (255, 0, 255)),
+        ("gif", (255, 0, 255)),
+        ("svg", (255, 0, 255)),
+        ("ico", (255, 0, 255)),
+        ("bmp", (255, 0, 255)),
+        ("webp", (255, 0, 255)),
+        // Archives
+        ("zip", (205, 0, 0)),
+        ("tar", (205, 0, 0)),
+        ("gz", (205, 0, 0)),
+        ("bz2", (205, 0, 0)),
+        ("xz", (205, 0, 0)),
+        ("rar", (205, 0, 0)),
+        ("7z", (205, 0, 0)),
+        // Lock files
+        ("lock", (127, 127, 127)),
+    ];
+
+    let mut map = ColorMap::new();
+    for &(ext, color) in defaults {
+        map.insert(ext.to_string(), color);
+    }
+
+    for (ext, color_name) in user_colors {
+        match parse_color(color_name) {
+            Some(rgb) => {
+                map.insert(ext.clone(), rgb);
+            }
+            None => {
+                eprintln!("Warning: unknown color '{color_name}' for extension '{ext}' in ~/.kreerc, ignoring");
+            }
+        }
+    }
+
+    map
+}
+
+fn colorize_name(name: &str, path: &Path, color_map: &ColorMap) -> String {
     if path.is_dir() {
         name.blue().bold().to_string()
     } else if is_executable(path) {
         name.green().bold().to_string()
     } else {
-        colorize_by_extension(name, path).to_string()
+        colorize_by_extension(name, path, color_map).to_string()
     }
 }
 
-fn colorize_by_extension<'a>(name: &'a str, path: &Path) -> ColoredString {
+fn colorize_by_extension(name: &str, path: &Path, color_map: &ColorMap) -> ColoredString {
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("");
 
-    match ext.to_lowercase().as_str() {
-        // Rust
-        "rs" => name.truecolor(255, 165, 0),
-        // Web
-        "js" | "ts" | "jsx" | "tsx" => name.yellow(),
-        "html" | "css" | "scss" => name.magenta(),
-        // Data / Config
-        "json" | "toml" | "yaml" | "yml" | "xml" | "csv" => name.cyan(),
-        // Documentation
-        "md" | "txt" | "rst" => name.bright_yellow(),
-        // Images
-        "png" | "jpg" | "jpeg" | "gif" | "svg" | "ico" | "bmp" | "webp" => name.bright_magenta(),
-        // Archives
-        "zip" | "tar" | "gz" | "bz2" | "xz" | "rar" | "7z" => name.red(),
-        // Lock files
-        "lock" => name.bright_black(),
-        // Default
-        _ => name.bright_white(),
+    match color_map.get(&ext.to_lowercase()) {
+        Some(&(r, g, b)) => name.truecolor(r, g, b),
+        None => name.bright_white(),
     }
 }
 
@@ -54,17 +138,17 @@ fn is_executable(_path: &Path) -> bool {
     false
 }
 
-pub fn render_tree(root: &TreeNode) {
-    println!("└── {}", colorize_name(&root.name, &root.path));
+pub fn render_tree(root: &TreeNode, color_map: &ColorMap) {
+    println!("└── {}", colorize_name(&root.name, &root.path, color_map));
     let child_count = root.children.len();
     for (i, child) in root.children.iter().enumerate() {
         let is_last = i == child_count - 1;
         let mask = if is_last { 0b11u64 } else { 0b01u64 };
-        render_node(child, 1, is_last, mask);
+        render_node(child, 1, is_last, mask, color_map);
     }
 }
 
-fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64) {
+fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map: &ColorMap) {
     for i in 0..depth {
         if ((mask >> i) & 1) == 0 {
             print!("│    ");
@@ -79,7 +163,7 @@ fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64) {
         print!("├── ");
     }
 
-    println!("{}", colorize_name(&node.name, &node.path));
+    println!("{}", colorize_name(&node.name, &node.path, color_map));
 
     let child_count = node.children.len();
     for (i, child) in node.children.iter().enumerate() {
@@ -89,6 +173,6 @@ fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64) {
         } else {
             mask
         };
-        render_node(child, depth + 1, child_is_last, new_mask);
+        render_node(child, depth + 1, child_is_last, new_mask, color_map);
     }
 }

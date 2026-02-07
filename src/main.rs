@@ -1,3 +1,4 @@
+mod config;
 mod ignore;
 mod render;
 mod search;
@@ -8,8 +9,9 @@ use std::process;
 
 use clap::Parser;
 
+use config::KreeConfig;
 use ignore::IgnoreFilter;
-use render::render_tree;
+use render::{build_color_map, render_tree};
 use search::{fuzzy_search, print_results};
 use tree::{load_tree, SortMode};
 
@@ -21,8 +23,8 @@ struct Cli {
     path: PathBuf,
 
     /// Maximum depth to traverse
-    #[arg(short, long, default_value_t = 1)]
-    depth: u32,
+    #[arg(short, long)]
+    depth: Option<u32>,
 
     /// Fuzzy search for a file or directory name
     #[arg(short, long)]
@@ -33,8 +35,8 @@ struct Cli {
     all: bool,
 
     /// Sort order for entries
-    #[arg(short, long, value_enum, default_value_t = SortMode::Kind)]
-    sort: SortMode,
+    #[arg(short, long, value_enum)]
+    sort: Option<SortMode>,
 
     /// Disable colored output
     #[arg(long)]
@@ -43,22 +45,29 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
+    let config = KreeConfig::load();
 
-    if cli.no_color {
+    let depth = cli.depth.or(config.defaults.depth).unwrap_or(1);
+    let sort = cli.sort.or(config.sort_mode()).unwrap_or(SortMode::Kind);
+    let no_color = cli.no_color || config.defaults.no_color.unwrap_or(false);
+    let all = cli.all || config.defaults.all.unwrap_or(false);
+
+    if no_color {
         colored::control::set_override(false);
     }
 
-    if cli.depth > 60 {
+    if depth > 60 {
         println!("Depth overflow!!\nAre you serious?");
         process::exit(0);
     }
 
     if let Some(query) = &cli.find {
-        let results = fuzzy_search(&cli.path, query, cli.depth);
+        let results = fuzzy_search(&cli.path, query, depth);
         print_results(&results);
     } else {
-        let filter = IgnoreFilter::new(!cli.all);
-        let root = load_tree(&cli.path, cli.depth, 0, &filter, cli.sort);
-        render_tree(&root);
+        let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
+        let color_map = build_color_map(&config.colors);
+        let root = load_tree(&cli.path, depth, 0, &filter, sort);
+        render_tree(&root, &color_map);
     }
 }
