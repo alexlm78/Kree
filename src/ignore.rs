@@ -1,6 +1,12 @@
 use std::collections::HashSet;
 use std::fs;
 
+/// Filter for ignoring files and directories during tree traversal.
+///
+/// It handles ignoring files based on:
+/// 1. Hidden files (starting with `.`)
+/// 2. Patterns listed in `.kreeignore` file in the current directory
+/// 3. Additional patterns passed from configuration or arguments
 #[derive(Clone)]
 pub struct IgnoreFilter {
     excluded: HashSet<String>,
@@ -8,6 +14,15 @@ pub struct IgnoreFilter {
 }
 
 impl IgnoreFilter {
+    /// Creates a new `IgnoreFilter`.
+    ///
+    /// # Arguments
+    ///
+    /// * `active` - Whether filtering is enabled. If false, no files are ignored.
+    /// * `config_patterns` - Additional patterns to ignore from configuration.
+    ///
+    /// If `active` is true, it attempts to read `.kreeignore` from the current directory
+    /// and adds those patterns to the exclusion list.
     pub fn new(active: bool, config_patterns: &[String]) -> Self {
         if !active {
             return IgnoreFilter {
@@ -35,6 +50,11 @@ impl IgnoreFilter {
         }
     }
 
+    /// Checks if a given filename should be ignored.
+    ///
+    /// Returns `true` if:
+    /// - Filtering is active AND
+    /// - (Filename starts with `.` OR Filename matches an excluded pattern)
     pub fn is_ignored(&self, filename: &str) -> bool {
         if !self.active {
             return false;

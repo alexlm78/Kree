@@ -1,12 +1,20 @@
 use std::fs;
 use std::path::Path;
 
+/// Represents a match found during fuzzy search.
 pub struct SearchResult {
+    /// Name of the matched file or directory.
     pub name: String,
+    /// Full path string.
     pub path: String,
+    /// Levenshtein distance score (lower is better).
     pub score: usize,
 }
 
+/// Calculates the Levenshtein distance between two strings.
+///
+/// The Levenshtein distance is the minimum number of single-character edits
+/// (insertions, deletions or substitutions) required to change one word into the other.
 pub fn levenshtein(s1: &str, s2: &str) -> usize {
     let m = s1.len();
     let n = s2.len();
@@ -36,6 +44,15 @@ pub fn levenshtein(s1: &str, s2: &str) -> usize {
     prev[n]
 }
 
+/// Performs a recursive fuzzy search for files and directories matching a query.
+///
+/// # Arguments
+///
+/// * `root_path` - The root directory to start searching from.
+/// * `query` - The search string.
+/// * `max_depth` - Maximum recursion depth.
+///
+/// Returns a list of `SearchResult` sorted by score (ascending).
 pub fn fuzzy_search(root_path: &Path, query: &str, max_depth: u32) -> Vec<SearchResult> {
     let mut results = Vec::new();
     search_recursive(root_path, query, max_depth, 0, &mut results);
@@ -65,6 +82,7 @@ fn search_recursive(
     let score_path = levenshtein(&path_str, query);
     let query_len = query.len();
 
+    // Heuristic: only keep results where distance is reasonably small compared to query length
     if score_name * 100 <= 50 * query_len || score_path * 100 <= 50 * query_len {
         results.push(SearchResult {
             name,
@@ -87,6 +105,7 @@ fn search_recursive(
     }
 }
 
+/// Prints formatted search results to stdout.
 pub fn print_results(results: &[SearchResult]) {
     if results.is_empty() {
         println!("No results found");

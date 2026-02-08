@@ -1,3 +1,9 @@
+//! Terminal User Interface (TUI) module.
+//!
+//! This module handles the interactive mode of Kree, allowing users to navigate the directory tree,
+//! expand/collapse directories, search for files, and preview file contents.
+//! It uses `ratatui` for rendering and `crossterm` for event handling.
+
 use std::collections::HashSet;
 use std::fs;
 use std::io::{self, Read as _};
@@ -17,6 +23,7 @@ use crate::render::{icon_for_node, is_executable, ColorMap, IconMap};
 use crate::search::levenshtein;
 use crate::tree::{load_tree, SortMode, TreeNode};
 
+/// Represents a flattened entry in the tree for list-based rendering.
 struct FlatEntry {
     name: String,
     path: PathBuf,
@@ -35,15 +42,23 @@ enum InputMode {
     Search,
 }
 
+/// Main application state for the TUI.
 struct App {
     tree: TreeNode,
     root_path: PathBuf,
+    /// Flattened list of entries currently visible (or available to be visible).
     entries: Vec<FlatEntry>,
+    /// Set of expanded node IDs.
     expanded: HashSet<usize>,
+    /// Current cursor position index in `entries`.
     cursor: usize,
+    /// Vertical scroll offset.
     scroll_offset: usize,
+    /// Current input mode (Normal or Search).
     input_mode: InputMode,
+    /// Current search query string.
     search_query: String,
+    /// Set of entry indices that match the search query.
     search_matches: HashSet<usize>,
     color_map: ColorMap,
     icon_map: IconMap,
@@ -51,7 +66,9 @@ struct App {
     filter: IgnoreFilter,
     sort: SortMode,
     max_depth: u32,
+    /// Content of the file preview pane.
     preview_content: Vec<String>,
+    /// Error message for file preview (if any).
     preview_error: Option<String>,
 }
 
@@ -720,6 +737,20 @@ fn ui(frame: &mut ratatui::Frame, app: &mut App) {
     frame.render_widget(render_status_bar(app), chunks[2]);
 }
 
+/// Runs the interactive TUI application.
+///
+/// This function initializes the terminal, runs the main event loop, and handles
+/// cleanup upon exit.
+///
+/// # Arguments
+///
+/// * `tree` - The initial tree structure.
+/// * `root_path` - The root directory path.
+/// * `color_map` - Color configuration.
+/// * `icon_map` - Icon configuration.
+/// * `filter` - Ignore filter for reloading the tree.
+/// * `sort` - Sorting mode.
+/// * `max_depth` - Maximum depth for reloading the tree.
 pub fn run(
     tree: TreeNode,
     root_path: PathBuf,

@@ -5,9 +5,16 @@ use colored::{ColoredString, Colorize};
 
 use crate::tree::TreeNode;
 
+/// Map of file extensions to RGB color tuples.
 pub type ColorMap = HashMap<String, (u8, u8, u8)>;
+/// Map of file extensions/names to icon characters.
 pub type IconMap = HashMap<String, String>;
 
+/// Parses a color string (name or hex) into an RGB tuple.
+///
+/// Supports:
+/// - Hex codes: `#RRGGBB`
+/// - Standard color names: `red`, `blue`, `bright_green`, etc.
 fn parse_color(name: &str) -> Option<(u8, u8, u8)> {
     if let Some(hex) = name.strip_prefix('#') {
         if hex.len() == 6 {
@@ -41,6 +48,10 @@ fn parse_color(name: &str) -> Option<(u8, u8, u8)> {
     }
 }
 
+/// Builds a `ColorMap` by merging default colors with user-provided overrides.
+///
+/// Default colors cover common programming languages, configuration formats,
+/// images, and archives.
 pub fn build_color_map(user_colors: &HashMap<String, String>) -> ColorMap {
     let defaults: &[(&str, (u8, u8, u8))] = &[
         // Rust
@@ -104,6 +115,9 @@ pub fn build_color_map(user_colors: &HashMap<String, String>) -> ColorMap {
     map
 }
 
+/// Builds an `IconMap` by merging default icons with user-provided overrides.
+///
+/// Icons are Nerd Font characters. Defaults cover common file types.
 pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
     let defaults: &[(&str, &str)] = &[
         // Special
@@ -196,6 +210,14 @@ pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
     map
 }
 
+/// Determines the icon to use for a given file path.
+///
+/// Priority:
+/// 1. Directory icon (if it's a directory)
+/// 2. Exact extension match
+/// 3. Exact filename match (e.g. `Dockerfile`)
+/// 4. Executable icon (if executable)
+/// 5. Default icon
 pub(crate) fn icon_for_node<'a>(path: &Path, icon_map: &'a IconMap) -> &'a str {
     if path.is_dir() {
         if let Some(icon) = icon_map.get("directory") {
@@ -263,6 +285,9 @@ fn colorize_by_extension(name: &str, path: &Path, color_map: &ColorMap) -> Color
     }
 }
 
+/// Checks if a file is executable.
+///
+/// On Unix-like systems, this checks the execute permission bit.
 #[cfg(unix)]
 pub(crate) fn is_executable(path: &Path) -> bool {
     use std::os::unix::fs::PermissionsExt;
@@ -271,11 +296,21 @@ pub(crate) fn is_executable(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Checks if a file is executable.
+///
+/// On non-Unix systems, this always returns false.
 #[cfg(not(unix))]
 pub(crate) fn is_executable(_path: &Path) -> bool {
     false
 }
 
+/// Renders the directory tree to stdout.
+///
+/// # Arguments
+///
+/// * `root` - The root node of the tree.
+/// * `color_map` - Configuration for file colors.
+/// * `icon_map` - Optional configuration for file icons.
 pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&IconMap>) {
     println!("└── {}", colorize_name(&root.name, &root.path, color_map, icon_map));
     let child_count = root.children.len();
