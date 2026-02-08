@@ -16,11 +16,11 @@ pub struct SearchResult {
 /// The Levenshtein distance is the minimum number of single-character edits
 /// (insertions, deletions or substitutions) required to change one word into the other.
 pub fn levenshtein(s1: &str, s2: &str) -> usize {
-    let m = s1.len();
-    let n = s2.len();
-
     let s1: Vec<char> = s1.chars().collect();
     let s2: Vec<char> = s2.chars().collect();
+
+    let m = s1.len();
+    let n = s2.len();
 
     let mut prev = vec![0usize; n + 1];
     let mut curr = vec![0usize; n + 1];
@@ -102,6 +102,46 @@ fn search_recursive(
 
     for entry in entries.flatten() {
         search_recursive(&entry.path(), query, max_depth, current_depth + 1, results);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn levenshtein_identical() {
+        assert_eq!(levenshtein("kitten", "kitten"), 0);
+    }
+
+    #[test]
+    fn levenshtein_single_sub() {
+        assert_eq!(levenshtein("kitten", "sitten"), 1);
+    }
+
+    #[test]
+    fn levenshtein_classic() {
+        assert_eq!(levenshtein("kitten", "sitting"), 3);
+    }
+
+    #[test]
+    fn levenshtein_empty_first() {
+        assert_eq!(levenshtein("", "abc"), 3);
+    }
+
+    #[test]
+    fn levenshtein_empty_both() {
+        assert_eq!(levenshtein("", ""), 0);
+    }
+
+    #[test]
+    fn levenshtein_case_sensitive() {
+        assert_eq!(levenshtein("ABC", "abc"), 3);
+    }
+
+    #[test]
+    fn levenshtein_unicode() {
+        assert_eq!(levenshtein("café", "cafe"), 1);
     }
 }
 

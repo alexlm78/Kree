@@ -62,3 +62,42 @@ impl IgnoreFilter {
         filename.starts_with('.') || self.excluded.contains(filename)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn inactive_filter_ignores_nothing() {
+        let filter = IgnoreFilter::new(false, &["target".to_string()]);
+        assert!(!filter.is_ignored("target"));
+    }
+
+    #[test]
+    fn active_filter_hides_dotfiles() {
+        let filter = IgnoreFilter::new(true, &[]);
+        assert!(filter.is_ignored(".git"));
+        assert!(filter.is_ignored(".env"));
+    }
+
+    #[test]
+    fn active_filter_matches_patterns() {
+        let filter = IgnoreFilter::new(true, &["target".to_string(), "node_modules".to_string()]);
+        assert!(filter.is_ignored("target"));
+        assert!(filter.is_ignored("node_modules"));
+    }
+
+    #[test]
+    fn active_filter_allows_normal_files() {
+        let filter = IgnoreFilter::new(true, &["target".to_string()]);
+        assert!(!filter.is_ignored("main.rs"));
+        assert!(!filter.is_ignored("Cargo.toml"));
+    }
+
+    #[test]
+    fn inactive_filter_allows_dotfiles() {
+        let filter = IgnoreFilter::new(false, &[]);
+        assert!(!filter.is_ignored(".git"));
+        assert!(!filter.is_ignored(".env"));
+    }
+}

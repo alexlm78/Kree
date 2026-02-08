@@ -92,3 +92,61 @@ pub fn load_tree(root: &PathBuf, max_depth: u32, current_depth: u32, filter: &Ig
 
     node
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn setup_tree() -> tempfile::TempDir {
+        let dir = tempdir().unwrap();
+        // Create files
+        fs::write(dir.path().join("banana.txt"), "").unwrap();
+        fs::write(dir.path().join("apple.txt"), "").unwrap();
+        // Create subdirectories
+        fs::create_dir(dir.path().join("cherry")).unwrap();
+        fs::write(dir.path().join("cherry").join("inner.txt"), "").unwrap();
+        fs::create_dir(dir.path().join("avocado")).unwrap();
+        // Create an ignored entry
+        fs::create_dir(dir.path().join("excluded_dir")).unwrap();
+        dir
+    }
+
+    #[test]
+    fn sort_name_mixes_dirs_and_files() {
+        let dir = setup_tree();
+        let filter = IgnoreFilter::new(false, &[]);
+        let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Name);
+        let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(names, vec!["apple.txt", "avocado", "banana.txt", "cherry", "excluded_dir"]);
+    }
+
+    #[test]
+    fn sort_kind_dirs_first() {
+        let dir = setup_tree();
+        let filter = IgnoreFilter::new(false, &[]);
+        let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Kind);
+        let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
+        // Dirs (avocado, cherry, excluded_dir) come first, then files (apple.txt, banana.txt)
+        assert_eq!(names, vec!["avocado", "cherry", "excluded_dir", "apple.txt", "banana.txt"]);
+    }
+
+    #[test]
+    fn depth_zero_returns_no_children() {
+        let dir = setup_tree();
+        let filter = IgnoreFilter::new(false, &[]);
+        let tree = load_tree(&dir.path().to_path_buf(), 0, 0, &filter, SortMode::Name);
+        assert!(tree.children.is_empty());
+    }
+
+    #[test]
+    fn filter_excludes_ignored_entries() {
+        let dir = setup_tree();
+        let filter = IgnoreFilter::new(true, &["excluded_dir".to_string()]);
+        let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Name);
+        let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
+        assert!(!names.contains(&"excluded_dir"));
+        assert!(names.contains(&"apple.txt"));
+    }
+}

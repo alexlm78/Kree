@@ -321,6 +321,94 @@ pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&Icon
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // parse_color tests
+
+    #[test]
+    fn parse_hex_color() {
+        assert_eq!(parse_color("#FF6600"), Some((255, 102, 0)));
+    }
+
+    #[test]
+    fn parse_named_color() {
+        assert_eq!(parse_color("red"), Some((205, 0, 0)));
+    }
+
+    #[test]
+    fn parse_hyphenated_color() {
+        assert_eq!(parse_color("bright-red"), Some((255, 0, 0)));
+    }
+
+    #[test]
+    fn parse_invalid_color() {
+        assert_eq!(parse_color("nope"), None);
+    }
+
+    #[test]
+    fn parse_short_hex_invalid() {
+        assert_eq!(parse_color("#FFF"), None);
+    }
+
+    // build_color_map tests
+
+    #[test]
+    fn color_map_has_defaults() {
+        let map = build_color_map(&HashMap::new());
+        assert_eq!(map.get("rs"), Some(&(255, 165, 0)));
+    }
+
+    #[test]
+    fn color_map_user_override() {
+        let mut user = HashMap::new();
+        user.insert("rs".to_string(), "#00FF00".to_string());
+        let map = build_color_map(&user);
+        assert_eq!(map.get("rs"), Some(&(0, 255, 0)));
+    }
+
+    // build_icon_map tests
+
+    #[test]
+    fn icon_map_has_defaults() {
+        let map = build_icon_map(&HashMap::new());
+        assert!(map.contains_key("rs"));
+    }
+
+    #[test]
+    fn icon_map_user_override() {
+        let mut user = HashMap::new();
+        user.insert("rs".to_string(), "X".to_string());
+        let map = build_icon_map(&user);
+        assert_eq!(map.get("rs"), Some(&"X".to_string()));
+    }
+
+    // is_executable tests (unix only)
+
+    #[cfg(unix)]
+    #[test]
+    fn executable_file_detected() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("script.sh");
+        std::fs::write(&file_path, "#!/bin/sh").unwrap();
+        std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(is_executable(&file_path));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn non_executable_file() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("data.txt");
+        std::fs::write(&file_path, "hello").unwrap();
+        std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(!is_executable(&file_path));
+    }
+}
+
 fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map: &ColorMap, icon_map: Option<&IconMap>) {
     for i in 0..depth {
         if ((mask >> i) & 1) == 0 {

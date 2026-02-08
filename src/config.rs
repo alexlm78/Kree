@@ -89,3 +89,38 @@ impl KreeConfig {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config_with_sort(sort: Option<&str>) -> KreeConfig {
+        KreeConfig {
+            defaults: DefaultsConfig {
+                sort: sort.map(|s| s.to_string()),
+                ..DefaultsConfig::default()
+            },
+            ..KreeConfig::default()
+        }
+    }
+
+    #[test]
+    fn sort_mode_name() {
+        assert!(matches!(config_with_sort(Some("name")).sort_mode(), Some(SortMode::Name)));
+    }
+
+    #[test]
+    fn sort_mode_kind() {
+        assert!(matches!(config_with_sort(Some("kind")).sort_mode(), Some(SortMode::Kind)));
+    }
+
+    #[test]
+    fn sort_mode_none() {
+        assert!(config_with_sort(None).sort_mode().is_none());
+    }
+
+    #[test]
+    fn sort_mode_invalid() {
+        assert!(config_with_sort(Some("bogus")).sort_mode().is_none());
+    }
+}
