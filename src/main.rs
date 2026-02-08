@@ -5,10 +5,12 @@ mod search;
 mod tree;
 mod tui;
 
+use std::io;
 use std::path::PathBuf;
 use std::process;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::Shell;
 
 use config::KreeConfig;
 use ignore::IgnoreFilter;
@@ -50,10 +52,20 @@ struct Cli {
     /// Launch interactive TUI mode
     #[arg(short = 't', long)]
     tui: bool,
+
+    /// Generate shell completion script and exit
+    #[arg(long, value_enum)]
+    completions: Option<Shell>,
 }
 
 fn main() {
     let cli = Cli::parse();
+
+    if let Some(shell) = cli.completions {
+        clap_complete::generate(shell, &mut Cli::command(), "kree", &mut io::stdout());
+        return;
+    }
+
     let config = KreeConfig::load();
 
     let depth = cli.depth.or(config.defaults.depth).unwrap_or(1);

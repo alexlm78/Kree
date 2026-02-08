@@ -65,6 +65,7 @@ kree /some/path -d 5 -f config
 | `-s` | `--sort`  | Sort order: `name` or `kind`               | `kind`  |
 | `-i` | `--icons` | Show Nerd Font icons next to entries        | `false` |
 | `-t` | `--tui`   | Launch interactive TUI mode                 | `false` |
+|      | `--completions` | Generate shell completion script and exit |       |
 
 ### Example output
 
@@ -164,6 +165,23 @@ Named ANSI colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`,
 Hex truecolor: any `#RRGGBB` value (e.g. `#FF6600`).
 
 Hyphens and underscores are interchangeable in color names (e.g. `bright-red` and `bright_red` both work).
+
+## Shell Completions
+
+Generate autocompletion scripts for your shell:
+
+```shell
+# Bash
+kree --completions bash >> ~/.bashrc
+
+# Zsh
+kree --completions zsh > ~/.zfunc/_kree
+
+# Fish
+kree --completions fish > ~/.config/fish/completions/kree.fish
+```
+
+Supported shells: `bash`, `zsh`, `fish`, `powershell`, `elvish`.
 
 ## `.kreeignore`
 
