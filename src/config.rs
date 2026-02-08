@@ -13,6 +13,8 @@ pub struct KreeConfig {
     pub colors: HashMap<String, String>,
     #[serde(default)]
     pub ignore: IgnoreConfig,
+    #[serde(default)]
+    pub icons: HashMap<String, String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -21,6 +23,7 @@ pub struct DefaultsConfig {
     pub sort: Option<String>,
     pub no_color: Option<bool>,
     pub all: Option<bool>,
+    pub icons: Option<bool>,
 }
 
 #[derive(Debug, Default, Deserialize)]

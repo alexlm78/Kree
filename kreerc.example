@@ -15,6 +15,9 @@ no_color = false
 # Show hidden (dot) files and ignore .kreeignore (default: false)
 all = false
 
+# Show Nerd Font icons next to files and directories (default: false)
+icons = false
+
 [colors]
 # Custom colors per file extension.
 # Values can be named ANSI colors or hex truecolor (#RRGGBB).
@@ -34,6 +37,14 @@ ts = "yellow"        # TypeScript
 rb = "red"           # Ruby
 java = "bright_red"  # Java
 log = "bright_black" # Log files — dimmed
+
+[icons]
+# Override icons per file extension or special key.
+# Special keys: directory, executable, default
+# Values are any Unicode character (Nerd Font glyphs recommended).
+# rs = ""
+# directory = ""
+# default = ""
 
 [ignore]
 # File/directory names to always exclude from the tree.

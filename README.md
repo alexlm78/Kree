@@ -11,7 +11,8 @@ A directory tree visualizer and fuzzy finder for the terminal, written in Rust.
 - **Configurable depth** — Control how deep the tree traversal goes (max 60).
 - **Sort modes** — Sort alphabetically (`-s name`) or group directories first (`-s kind`).
 - **Colored output** — Directories in blue, executables in green, regular files in bright white.
-- **Configuration file** — Persistent defaults, custom colors, and global ignore patterns via `~/.kreerc`.
+- **Nerd Font icons** — Opt-in file-type icons via `--icons` (requires a [Nerd Font](https://www.nerdfonts.com/)).
+- **Configuration file** — Persistent defaults, custom colors, icons, and global ignore patterns via `~/.kreerc`.
 
 ## Installation
 
@@ -39,6 +40,9 @@ kree -a
 # Sort by kind (directories first)
 kree -s kind
 
+# Show Nerd Font icons (requires a Nerd Font)
+kree --icons
+
 # Combine options
 kree /some/path -d 5 -f config
 ```
@@ -52,6 +56,7 @@ kree /some/path -d 5 -f config
 | `-f` | `--find`  | Fuzzy search for a file or directory name  |         |
 | `-a` | `--all`   | Show hidden files and ignore `.kreeignore` | `false` |
 | `-s` | `--sort`  | Sort order: `name` or `kind`               | `kind`  |
+| `-i` | `--icons` | Show Nerd Font icons next to entries        | `false` |
 
 ### Example output
 
@@ -91,6 +96,7 @@ depth = 3              # default traversal depth
 sort = "kind"          # "name" or "kind"
 no_color = false       # disable colored output
 all = false            # show hidden files
+icons = false          # show Nerd Font icons
 
 [colors]
 # Named ANSI colors or hex truecolor (#RRGGBB)
@@ -100,6 +106,10 @@ go = "cyan"            # Go
 js = "yellow"          # JavaScript
 java = "bright_red"    # Java
 log = "bright_black"   # Log files — dimmed
+
+[icons]
+# Override icons per extension or special key (directory, executable, default)
+# rs = ""
 
 [ignore]
 # Merged with local .kreeignore; -a flag overrides both
@@ -114,7 +124,9 @@ patterns = ["target", "node_modules", "dist", "__pycache__", ".git"]
 | `[defaults]` | `sort`     | string     | `"name"` or `"kind"` (overridden by `-s`)           |
 | `[defaults]` | `no_color` | boolean    | Disable colors (overridden by `--no-color`)         |
 | `[defaults]` | `all`      | boolean    | Show hidden files (overridden by `-a`)              |
+| `[defaults]` | `icons`    | boolean    | Show Nerd Font icons (overridden by `-i`)           |
 | `[colors]`   | `<ext>`    | string     | Color for file extension — named color or hex code  |
+| `[icons]`    | `<ext>`    | string     | Icon for file extension — any Unicode character     |
 | `[ignore]`   | `patterns` | string[]   | Filenames to always exclude (merged with `.kreeignore`) |
 
 ### Supported colors

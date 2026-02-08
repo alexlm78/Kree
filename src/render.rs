@@ -6,6 +6,7 @@ use colored::{ColoredString, Colorize};
 use crate::tree::TreeNode;
 
 pub type ColorMap = HashMap<String, (u8, u8, u8)>;
+pub type IconMap = HashMap<String, String>;
 
 fn parse_color(name: &str) -> Option<(u8, u8, u8)> {
     if let Some(hex) = name.strip_prefix('#') {
@@ -103,13 +104,150 @@ pub fn build_color_map(user_colors: &HashMap<String, String>) -> ColorMap {
     map
 }
 
-fn colorize_name(name: &str, path: &Path, color_map: &ColorMap) -> String {
+pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
+    let defaults: &[(&str, &str)] = &[
+        // Special
+        ("directory", "\u{f115}"),  //
+        ("executable", "\u{f489}"), //
+        ("default", "\u{f15b}"),    //
+
+        // Languages
+        ("rs", "\u{e7a8}"),    //
+        ("py", "\u{e73c}"),    //
+        ("js", "\u{e74e}"),    //
+        ("ts", "\u{e628}"),    //
+        ("jsx", "\u{e7ba}"),   //
+        ("tsx", "\u{e7ba}"),   //
+        ("go", "\u{e626}"),    //
+        ("rb", "\u{e739}"),    //
+        ("java", "\u{e738}"),  //
+        ("c", "\u{e61e}"),     //
+        ("cpp", "\u{e61d}"),   //
+        ("h", "\u{e61e}"),     //
+        ("hpp", "\u{e61d}"),   //
+        ("lua", "\u{e620}"),   //
+        ("php", "\u{e73d}"),   //
+        ("swift", "\u{e755}"), //
+        ("kt", "\u{e634}"),   //
+        ("dart", "\u{e798}"),  //
+        ("zig", "\u{e6a9}"),   //
+        ("ex", "\u{e62d}"),    //
+        ("hs", "\u{e61f}"),    //
+        ("sh", "\u{f489}"),    //
+        ("bash", "\u{f489}"),  //
+        ("zsh", "\u{f489}"),   //
+        ("cs", "\u{f81a}"),    //
+        ("r", "\u{f25d}"),     //
+
+        // Web
+        ("html", "\u{e736}"),  //
+        ("css", "\u{e749}"),   //
+        ("scss", "\u{e749}"),  //
+        ("vue", "\u{e6a0}"),   //
+
+        // Data / Config
+        ("json", "\u{e60b}"),  //
+        ("toml", "\u{e60b}"),  //
+        ("yaml", "\u{e60b}"),  //
+        ("yml", "\u{e60b}"),   //
+        ("xml", "\u{e619}"),   //
+        ("csv", "\u{f1c3}"),   //
+
+        // Docs
+        ("md", "\u{e73e}"),    //
+        ("txt", "\u{f15c}"),   //
+        ("rst", "\u{f15c}"),   //
+        ("pdf", "\u{f1c1}"),   //
+
+        // Images
+        ("png", "\u{f1c5}"),   //
+        ("jpg", "\u{f1c5}"),   //
+        ("jpeg", "\u{f1c5}"),  //
+        ("gif", "\u{f1c5}"),   //
+        ("svg", "\u{f1c5}"),   //
+        ("ico", "\u{f1c5}"),   //
+        ("bmp", "\u{f1c5}"),   //
+        ("webp", "\u{f1c5}"),  //
+
+        // Archives
+        ("zip", "\u{f1c6}"),   //
+        ("tar", "\u{f1c6}"),   //
+        ("gz", "\u{f1c6}"),    //
+        ("bz2", "\u{f1c6}"),   //
+        ("xz", "\u{f1c6}"),    //
+        ("rar", "\u{f1c6}"),   //
+        ("7z", "\u{f1c6}"),    //
+
+        // Other
+        ("lock", "\u{f023}"),  //
+        ("dockerfile", "\u{e7b0}"), //
+        ("gitignore", "\u{e702}"),  //
+    ];
+
+    let mut map = IconMap::new();
+    for &(key, icon) in defaults {
+        map.insert(key.to_string(), icon.to_string());
+    }
+
+    for (key, icon) in user_icons {
+        map.insert(key.clone(), icon.clone());
+    }
+
+    map
+}
+
+fn icon_for_node<'a>(path: &Path, icon_map: &'a IconMap) -> &'a str {
     if path.is_dir() {
+        if let Some(icon) = icon_map.get("directory") {
+            return icon.as_str();
+        }
+        return "";
+    }
+
+    // Try extension first
+    if let Some(ext) = path.extension().and_then(|e| e.to_str())
+        && let Some(icon) = icon_map.get(&ext.to_lowercase())
+    {
+        return icon.as_str();
+    }
+
+    // Try full filename (e.g. Dockerfile, .gitignore)
+    if let Some(filename) = path.file_name().and_then(|n| n.to_str())
+        && let Some(icon) = icon_map.get(&filename.to_lowercase())
+    {
+        return icon.as_str();
+    }
+
+    // Executable check
+    if is_executable(path)
+        && let Some(icon) = icon_map.get("executable")
+    {
+        return icon.as_str();
+    }
+
+    // Default
+    if let Some(icon) = icon_map.get("default") {
+        return icon.as_str();
+    }
+
+    ""
+}
+
+fn colorize_name(name: &str, path: &Path, color_map: &ColorMap, icon_map: Option<&IconMap>) -> String {
+    let colored = if path.is_dir() {
         name.blue().bold().to_string()
     } else if is_executable(path) {
         name.green().bold().to_string()
     } else {
         colorize_by_extension(name, path, color_map).to_string()
+    };
+
+    match icon_map {
+        Some(im) => {
+            let icon = icon_for_node(path, im);
+            format!("{icon} {colored}")
+        }
+        None => colored,
     }
 }
 
@@ -138,17 +276,17 @@ fn is_executable(_path: &Path) -> bool {
     false
 }
 
-pub fn render_tree(root: &TreeNode, color_map: &ColorMap) {
-    println!("└── {}", colorize_name(&root.name, &root.path, color_map));
+pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&IconMap>) {
+    println!("└── {}", colorize_name(&root.name, &root.path, color_map, icon_map));
     let child_count = root.children.len();
     for (i, child) in root.children.iter().enumerate() {
         let is_last = i == child_count - 1;
         let mask = if is_last { 0b11u64 } else { 0b01u64 };
-        render_node(child, 1, is_last, mask, color_map);
+        render_node(child, 1, is_last, mask, color_map, icon_map);
     }
 }
 
-fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map: &ColorMap) {
+fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map: &ColorMap, icon_map: Option<&IconMap>) {
     for i in 0..depth {
         if ((mask >> i) & 1) == 0 {
             print!("│    ");
@@ -163,7 +301,7 @@ fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map:
         print!("├── ");
     }
 
-    println!("{}", colorize_name(&node.name, &node.path, color_map));
+    println!("{}", colorize_name(&node.name, &node.path, color_map, icon_map));
 
     let child_count = node.children.len();
     for (i, child) in node.children.iter().enumerate() {
@@ -173,6 +311,6 @@ fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map:
         } else {
             mask
         };
-        render_node(child, depth + 1, child_is_last, new_mask, color_map);
+        render_node(child, depth + 1, child_is_last, new_mask, color_map, icon_map);
     }
 }

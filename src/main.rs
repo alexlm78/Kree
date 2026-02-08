@@ -11,7 +11,7 @@ use clap::Parser;
 
 use config::KreeConfig;
 use ignore::IgnoreFilter;
-use render::{build_color_map, render_tree};
+use render::{build_color_map, build_icon_map, render_tree};
 use search::{fuzzy_search, print_results};
 use tree::{load_tree, SortMode};
 
@@ -41,6 +41,10 @@ struct Cli {
     /// Disable colored output
     #[arg(long)]
     no_color: bool,
+
+    /// Show Nerd Font icons next to files and directories
+    #[arg(short = 'i', long)]
+    icons: bool,
 }
 
 fn main() {
@@ -50,6 +54,7 @@ fn main() {
     let depth = cli.depth.or(config.defaults.depth).unwrap_or(1);
     let sort = cli.sort.or(config.sort_mode()).unwrap_or(SortMode::Kind);
     let no_color = cli.no_color || config.defaults.no_color.unwrap_or(false);
+    let icons = cli.icons || config.defaults.icons.unwrap_or(false);
     let all = cli.all || config.defaults.all.unwrap_or(false);
 
     if no_color {
@@ -67,7 +72,8 @@ fn main() {
     } else {
         let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
         let color_map = build_color_map(&config.colors);
+        let icon_map = if icons { Some(build_icon_map(&config.icons)) } else { None };
         let root = load_tree(&cli.path, depth, 0, &filter, sort);
-        render_tree(&root, &color_map);
+        render_tree(&root, &color_map, icon_map.as_ref());
     }
 }
