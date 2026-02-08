@@ -196,7 +196,7 @@ pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
     map
 }
 
-fn icon_for_node<'a>(path: &Path, icon_map: &'a IconMap) -> &'a str {
+pub(crate) fn icon_for_node<'a>(path: &Path, icon_map: &'a IconMap) -> &'a str {
     if path.is_dir() {
         if let Some(icon) = icon_map.get("directory") {
             return icon.as_str();
@@ -264,7 +264,7 @@ fn colorize_by_extension(name: &str, path: &Path, color_map: &ColorMap) -> Color
 }
 
 #[cfg(unix)]
-fn is_executable(path: &Path) -> bool {
+pub(crate) fn is_executable(path: &Path) -> bool {
     use std::os::unix::fs::PermissionsExt;
     path.metadata()
         .map(|m| !m.is_dir() && m.permissions().mode() & 0o111 != 0)
@@ -272,7 +272,7 @@ fn is_executable(path: &Path) -> bool {
 }
 
 #[cfg(not(unix))]
-fn is_executable(_path: &Path) -> bool {
+pub(crate) fn is_executable(_path: &Path) -> bool {
     false
 }
 

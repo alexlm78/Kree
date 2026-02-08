@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 
+#[derive(Clone)]
 pub struct IgnoreFilter {
     excluded: HashSet<String>,
     active: bool,

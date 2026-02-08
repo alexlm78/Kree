@@ -12,6 +12,7 @@ A directory tree visualizer and fuzzy finder for the terminal, written in Rust.
 - **Sort modes** — Sort alphabetically (`-s name`) or group directories first (`-s kind`).
 - **Colored output** — Directories in blue, executables in green, regular files in bright white.
 - **Nerd Font icons** — Opt-in file-type icons via `--icons` (requires a [Nerd Font](https://www.nerdfonts.com/)).
+- **Interactive TUI** — Full-screen interactive mode with keyboard navigation, expand/collapse, file preview, and inline fuzzy search (`--tui`).
 - **Configuration file** — Persistent defaults, custom colors, icons, and global ignore patterns via `~/.kreerc`.
 
 ## Installation
@@ -43,6 +44,12 @@ kree -s kind
 # Show Nerd Font icons (requires a Nerd Font)
 kree --icons
 
+# Launch interactive TUI mode
+kree -t
+
+# TUI with deeper initial tree
+kree -t -d 5
+
 # Combine options
 kree /some/path -d 5 -f config
 ```
@@ -57,6 +64,7 @@ kree /some/path -d 5 -f config
 | `-a` | `--all`   | Show hidden files and ignore `.kreeignore` | `false` |
 | `-s` | `--sort`  | Sort order: `name` or `kind`               | `kind`  |
 | `-i` | `--icons` | Show Nerd Font icons next to entries        | `false` |
+| `-t` | `--tui`   | Launch interactive TUI mode                 | `false` |
 
 ### Example output
 
@@ -74,6 +82,26 @@ kree /some/path -d 5 -f config
      ├── LICENSE
      └── README.md
 ```
+
+### TUI keybindings
+
+| Key                     | Mode   | Action                         |
+|-------------------------|--------|--------------------------------|
+| `q` / `Esc`             | Normal | Quit                           |
+| `Ctrl+C`                | Any    | Quit                           |
+| `Up` / `k`              | Normal | Cursor up                      |
+| `Down` / `j`            | Normal | Cursor down                    |
+| `Right` / `l` / `Enter` | Normal | Expand directory               |
+| `Left` / `h`            | Normal | Collapse dir or jump to parent |
+| `/`                     | Normal | Enter search mode              |
+| `Home` / `End`          | Normal | Jump to first/last entry       |
+| `PageUp` / `PageDown`   | Normal | Scroll by half viewport        |
+| `r`                     | Normal | Reload tree from disk          |
+| Any char                | Search | Append to query (live filter)  |
+| `Backspace`             | Search | Delete last char from query    |
+| `Enter`                 | Search | Confirm search, back to Normal |
+| `Esc`                   | Search | Cancel search, clear query     |
+| `Up` / `Down`           | Search | Jump to prev/next match        |
 
 ## Configuration (`~/.kreerc`)
 

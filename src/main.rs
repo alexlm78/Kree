@@ -3,6 +3,7 @@ mod ignore;
 mod render;
 mod search;
 mod tree;
+mod tui;
 
 use std::path::PathBuf;
 use std::process;
@@ -45,6 +46,10 @@ struct Cli {
     /// Show Nerd Font icons next to files and directories
     #[arg(short = 'i', long)]
     icons: bool,
+
+    /// Launch interactive TUI mode
+    #[arg(short = 't', long)]
+    tui: bool,
 }
 
 fn main() {
@@ -66,7 +71,16 @@ fn main() {
         process::exit(0);
     }
 
-    if let Some(query) = &cli.find {
+    if cli.tui {
+        let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
+        let color_map = build_color_map(&config.colors);
+        let icon_map = build_icon_map(&config.icons);
+        let root = load_tree(&cli.path, depth, 0, &filter, sort);
+        if let Err(e) = tui::run(root, cli.path.clone(), color_map, icon_map, filter, sort, depth) {
+            eprintln!("TUI error: {e}");
+            process::exit(1);
+        }
+    } else if let Some(query) = &cli.find {
         let results = fuzzy_search(&cli.path, query, depth);
         print_results(&results);
     } else {

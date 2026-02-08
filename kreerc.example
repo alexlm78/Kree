@@ -18,6 +18,10 @@ all = false
 # Show Nerd Font icons next to files and directories (default: false)
 icons = false
 
+# Launch interactive TUI mode (default: false)
+# Can also be activated with -t/--tui flag
+# tui = false
+
 [colors]
 # Custom colors per file extension.
 # Values can be named ANSI colors or hex truecolor (#RRGGBB).
