@@ -9,19 +9,19 @@ use std::fs;
 use std::io::{self, Read as _};
 use std::path::PathBuf;
 
+use crossterm::ExecutableCommand;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
-use crossterm::ExecutableCommand;
+use ratatui::Terminal;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Terminal;
 
 use crate::ignore::IgnoreFilter;
-use crate::render::{icon_for_node, is_executable, ColorMap, IconMap};
+use crate::render::{ColorMap, IconMap, icon_for_node, is_executable};
 use crate::search::levenshtein;
-use crate::tree::{load_tree, SortMode, TreeNode};
+use crate::tree::{SortMode, TreeNode, load_tree};
 
 /// Represents a flattened entry in the tree for list-based rendering.
 struct FlatEntry {
@@ -212,7 +212,8 @@ impl App {
                     return;
                 }
             };
-            self.preview_content.push(format!("Directory: {}", path.display()));
+            self.preview_content
+                .push(format!("Directory: {}", path.display()));
             self.preview_content.push(format!("{count} entries"));
             return;
         }
@@ -256,7 +257,8 @@ impl App {
             Ok(text) => {
                 for (i, line) in text.lines().enumerate() {
                     if i >= 500 {
-                        self.preview_content.push("... (truncated at 500 lines)".to_string());
+                        self.preview_content
+                            .push("... (truncated at 500 lines)".to_string());
                         break;
                     }
                     self.preview_content.push(line.to_string());
@@ -391,7 +393,15 @@ impl App {
 fn flatten_tree(tree: &TreeNode, expanded: &HashSet<usize>) -> Vec<FlatEntry> {
     let mut entries = Vec::new();
     let mut counter = 0usize;
-    flatten_recursive(tree, expanded, 0, true, &HashSet::new(), &mut counter, &mut entries);
+    flatten_recursive(
+        tree,
+        expanded,
+        0,
+        true,
+        &HashSet::new(),
+        &mut counter,
+        &mut entries,
+    );
     entries
 }
 
@@ -495,11 +505,7 @@ fn collect_matches_recursive(
     }
 }
 
-fn auto_expand_for_matches(
-    match_ids: &[usize],
-    tree: &TreeNode,
-    expanded: &mut HashSet<usize>,
-) {
+fn auto_expand_for_matches(match_ids: &[usize], tree: &TreeNode, expanded: &mut HashSet<usize>) {
     let match_set: HashSet<usize> = match_ids.iter().copied().collect();
     auto_expand_recursive(tree, &match_set, expanded, &mut 0);
 }
@@ -534,9 +540,13 @@ fn rgb_to_color(r: u8, g: u8, b: u8) -> Color {
 
 fn style_for_entry(entry: &FlatEntry, color_map: &ColorMap) -> Style {
     if entry.is_dir {
-        Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Blue)
+            .add_modifier(Modifier::BOLD)
     } else if is_executable(&entry.path) {
-        Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Green)
+            .add_modifier(Modifier::BOLD)
     } else {
         let ext = entry
             .path
@@ -584,7 +594,12 @@ fn render_breadcrumb(app: &App) -> Paragraph<'static> {
     };
 
     let line = Line::from(vec![
-        Span::styled("Kree", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Kree",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw("   Path: "),
         Span::styled(path_str, Style::default().fg(Color::Yellow)),
     ]);
@@ -622,9 +637,7 @@ fn render_tree_panel(app: &App, area: Rect) -> Paragraph<'static> {
 
         let mut final_style = name_style;
         if is_cursor {
-            final_style = final_style
-                .bg(Color::DarkGray)
-                .add_modifier(Modifier::BOLD);
+            final_style = final_style.bg(Color::DarkGray).add_modifier(Modifier::BOLD);
         }
         if is_match {
             final_style = final_style.add_modifier(Modifier::UNDERLINED);
@@ -634,11 +647,7 @@ fn render_tree_panel(app: &App, area: Rect) -> Paragraph<'static> {
         lines.push(Line::from(spans));
     }
 
-    Paragraph::new(lines).block(
-        Block::default()
-            .title(" Tree ")
-            .borders(Borders::ALL),
-    )
+    Paragraph::new(lines).block(Block::default().title(" Tree ").borders(Borders::ALL))
 }
 
 fn render_preview_panel(app: &App) -> Paragraph<'static> {
@@ -668,11 +677,7 @@ fn render_preview_panel(app: &App) -> Paragraph<'static> {
             .collect()
     };
 
-    Paragraph::new(lines).block(
-        Block::default()
-            .title(title)
-            .borders(Borders::ALL),
-    )
+    Paragraph::new(lines).block(Block::default().title(title).borders(Borders::ALL))
 }
 
 fn render_status_bar(app: &App) -> Paragraph<'static> {
@@ -692,7 +697,12 @@ fn render_status_bar(app: &App) -> Paragraph<'static> {
             Span::raw(" Reload"),
         ]),
         InputMode::Search => Line::from(vec![
-            Span::styled(" Search: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                " Search: ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(app.search_query.clone(), Style::default().fg(Color::White)),
             Span::styled("█", Style::default().fg(Color::Yellow)),
             Span::raw("   "),
@@ -713,7 +723,7 @@ fn ui(frame: &mut ratatui::Frame, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(2), // breadcrumb
-            Constraint::Min(5),   // body
+            Constraint::Min(5),    // body
             Constraint::Length(2), // status
         ])
         .split(frame.area());
@@ -775,7 +785,9 @@ pub fn run(
     let backend = ratatui::backend::CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(tree, root_path, color_map, icon_map, filter, sort, max_depth);
+    let mut app = App::new(
+        tree, root_path, color_map, icon_map, filter, sort, max_depth,
+    );
 
     // Main loop
     loop {

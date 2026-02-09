@@ -107,7 +107,9 @@ pub fn build_color_map(user_colors: &HashMap<String, String>) -> ColorMap {
                 map.insert(ext.clone(), rgb);
             }
             None => {
-                eprintln!("Warning: unknown color '{color_name}' for extension '{ext}' in ~/.kreerc, ignoring");
+                eprintln!(
+                    "Warning: unknown color '{color_name}' for extension '{ext}' in ~/.kreerc, ignoring"
+                );
             }
         }
     }
@@ -124,7 +126,6 @@ pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
         ("directory", "\u{f115}"),  //
         ("executable", "\u{f489}"), //
         ("default", "\u{f15b}"),    //
-
         // Languages
         ("rs", "\u{e7a8}"),    //
         ("py", "\u{e73c}"),    //
@@ -142,7 +143,7 @@ pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
         ("lua", "\u{e620}"),   //
         ("php", "\u{e73d}"),   //
         ("swift", "\u{e755}"), //
-        ("kt", "\u{e634}"),   //
+        ("kt", "\u{e634}"),    //
         ("dart", "\u{e798}"),  //
         ("zig", "\u{e6a9}"),   //
         ("ex", "\u{e62d}"),    //
@@ -152,48 +153,42 @@ pub fn build_icon_map(user_icons: &HashMap<String, String>) -> IconMap {
         ("zsh", "\u{f489}"),   //
         ("cs", "\u{f81a}"),    //
         ("r", "\u{f25d}"),     //
-
         // Web
-        ("html", "\u{e736}"),  //
-        ("css", "\u{e749}"),   //
-        ("scss", "\u{e749}"),  //
-        ("vue", "\u{e6a0}"),   //
-
+        ("html", "\u{e736}"), //
+        ("css", "\u{e749}"),  //
+        ("scss", "\u{e749}"), //
+        ("vue", "\u{e6a0}"),  //
         // Data / Config
-        ("json", "\u{e60b}"),  //
-        ("toml", "\u{e60b}"),  //
-        ("yaml", "\u{e60b}"),  //
-        ("yml", "\u{e60b}"),   //
-        ("xml", "\u{e619}"),   //
-        ("csv", "\u{f1c3}"),   //
-
+        ("json", "\u{e60b}"), //
+        ("toml", "\u{e60b}"), //
+        ("yaml", "\u{e60b}"), //
+        ("yml", "\u{e60b}"),  //
+        ("xml", "\u{e619}"),  //
+        ("csv", "\u{f1c3}"),  //
         // Docs
-        ("md", "\u{e73e}"),    //
-        ("txt", "\u{f15c}"),   //
-        ("rst", "\u{f15c}"),   //
-        ("pdf", "\u{f1c1}"),   //
-
+        ("md", "\u{e73e}"),  //
+        ("txt", "\u{f15c}"), //
+        ("rst", "\u{f15c}"), //
+        ("pdf", "\u{f1c1}"), //
         // Images
-        ("png", "\u{f1c5}"),   //
-        ("jpg", "\u{f1c5}"),   //
-        ("jpeg", "\u{f1c5}"),  //
-        ("gif", "\u{f1c5}"),   //
-        ("svg", "\u{f1c5}"),   //
-        ("ico", "\u{f1c5}"),   //
-        ("bmp", "\u{f1c5}"),   //
-        ("webp", "\u{f1c5}"),  //
-
+        ("png", "\u{f1c5}"),  //
+        ("jpg", "\u{f1c5}"),  //
+        ("jpeg", "\u{f1c5}"), //
+        ("gif", "\u{f1c5}"),  //
+        ("svg", "\u{f1c5}"),  //
+        ("ico", "\u{f1c5}"),  //
+        ("bmp", "\u{f1c5}"),  //
+        ("webp", "\u{f1c5}"), //
         // Archives
-        ("zip", "\u{f1c6}"),   //
-        ("tar", "\u{f1c6}"),   //
-        ("gz", "\u{f1c6}"),    //
-        ("bz2", "\u{f1c6}"),   //
-        ("xz", "\u{f1c6}"),    //
-        ("rar", "\u{f1c6}"),   //
-        ("7z", "\u{f1c6}"),    //
-
+        ("zip", "\u{f1c6}"), //
+        ("tar", "\u{f1c6}"), //
+        ("gz", "\u{f1c6}"),  //
+        ("bz2", "\u{f1c6}"), //
+        ("xz", "\u{f1c6}"),  //
+        ("rar", "\u{f1c6}"), //
+        ("7z", "\u{f1c6}"),  //
         // Other
-        ("lock", "\u{f023}"),  //
+        ("lock", "\u{f023}"),       //
         ("dockerfile", "\u{e7b0}"), //
         ("gitignore", "\u{e702}"),  //
     ];
@@ -255,7 +250,12 @@ pub(crate) fn icon_for_node<'a>(path: &Path, icon_map: &'a IconMap) -> &'a str {
     ""
 }
 
-fn colorize_name(name: &str, path: &Path, color_map: &ColorMap, icon_map: Option<&IconMap>) -> String {
+fn colorize_name(
+    name: &str,
+    path: &Path,
+    color_map: &ColorMap,
+    icon_map: Option<&IconMap>,
+) -> String {
     let colored = if path.is_dir() {
         name.blue().bold().to_string()
     } else if is_executable(path) {
@@ -274,10 +274,7 @@ fn colorize_name(name: &str, path: &Path, color_map: &ColorMap, icon_map: Option
 }
 
 fn colorize_by_extension(name: &str, path: &Path, color_map: &ColorMap) -> ColoredString {
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
     match color_map.get(&ext.to_lowercase()) {
         Some(&(r, g, b)) => name.truecolor(r, g, b),
@@ -312,7 +309,10 @@ pub(crate) fn is_executable(_path: &Path) -> bool {
 /// * `color_map` - Configuration for file colors.
 /// * `icon_map` - Optional configuration for file icons.
 pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&IconMap>) {
-    println!("└── {}", colorize_name(&root.name, &root.path, color_map, icon_map));
+    println!(
+        "└── {}",
+        colorize_name(&root.name, &root.path, color_map, icon_map)
+    );
     let child_count = root.children.len();
     for (i, child) in root.children.iter().enumerate() {
         let is_last = i == child_count - 1;
@@ -409,7 +409,14 @@ mod tests {
     }
 }
 
-fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map: &ColorMap, icon_map: Option<&IconMap>) {
+fn render_node(
+    node: &TreeNode,
+    depth: u32,
+    is_last: bool,
+    mask: u64,
+    color_map: &ColorMap,
+    icon_map: Option<&IconMap>,
+) {
     for i in 0..depth {
         if ((mask >> i) & 1) == 0 {
             print!("│    ");
@@ -424,7 +431,10 @@ fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map:
         print!("├── ");
     }
 
-    println!("{}", colorize_name(&node.name, &node.path, color_map, icon_map));
+    println!(
+        "{}",
+        colorize_name(&node.name, &node.path, color_map, icon_map)
+    );
 
     let child_count = node.children.len();
     for (i, child) in node.children.iter().enumerate() {
@@ -434,6 +444,13 @@ fn render_node(node: &TreeNode, depth: u32, is_last: bool, mask: u64, color_map:
         } else {
             mask
         };
-        render_node(child, depth + 1, child_is_last, new_mask, color_map, icon_map);
+        render_node(
+            child,
+            depth + 1,
+            child_is_last,
+            new_mask,
+            color_map,
+            icon_map,
+        );
     }
 }

@@ -37,11 +37,15 @@ use config::KreeConfig;
 use ignore::IgnoreFilter;
 use render::{build_color_map, build_icon_map, render_tree};
 use search::{fuzzy_search, print_results};
-use tree::{load_tree, SortMode};
+use tree::{SortMode, load_tree};
 
 /// Command Line Interface arguments parser for Kree.
 #[derive(Parser)]
-#[command(name = "kree", version, about = "A directory tree visualizer and fuzzy finder")]
+#[command(
+    name = "kree",
+    version,
+    about = "A directory tree visualizer and fuzzy finder"
+)]
 struct Cli {
     /// Root directory to scan. Defaults to current directory.
     #[arg(default_value = ".")]
@@ -116,21 +120,33 @@ fn main() {
         let color_map = build_color_map(&config.colors);
         let icon_map = build_icon_map(&config.icons);
         let root = load_tree(&cli.path, depth, 0, &filter, sort);
-        if let Err(e) = tui::run(root, cli.path.clone(), color_map, icon_map, filter, sort, depth) {
+        if let Err(e) = tui::run(
+            root,
+            cli.path.clone(),
+            color_map,
+            icon_map,
+            filter,
+            sort,
+            depth,
+        ) {
             eprintln!("TUI error: {e}");
             process::exit(1);
         }
-    } 
+    }
     // Run fuzzy search if a query is provided
     else if let Some(query) = &cli.find {
         let results = fuzzy_search(&cli.path, query, depth);
         print_results(&results);
-    } 
+    }
     // Standard tree rendering mode
     else {
         let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
         let color_map = build_color_map(&config.colors);
-        let icon_map = if icons { Some(build_icon_map(&config.icons)) } else { None };
+        let icon_map = if icons {
+            Some(build_icon_map(&config.icons))
+        } else {
+            None
+        };
         let root = load_tree(&cli.path, depth, 0, &filter, sort);
         render_tree(&root, &color_map, icon_map.as_ref());
     }

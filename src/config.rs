@@ -106,12 +106,18 @@ mod tests {
 
     #[test]
     fn sort_mode_name() {
-        assert!(matches!(config_with_sort(Some("name")).sort_mode(), Some(SortMode::Name)));
+        assert!(matches!(
+            config_with_sort(Some("name")).sort_mode(),
+            Some(SortMode::Name)
+        ));
     }
 
     #[test]
     fn sort_mode_kind() {
-        assert!(matches!(config_with_sort(Some("kind")).sort_mode(), Some(SortMode::Kind)));
+        assert!(matches!(
+            config_with_sort(Some("kind")).sort_mode(),
+            Some(SortMode::Kind)
+        ));
     }
 
     #[test]

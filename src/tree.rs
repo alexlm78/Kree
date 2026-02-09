@@ -36,7 +36,13 @@ pub struct TreeNode {
 /// * `current_depth` - Current recursion depth (start with 0).
 /// * `filter` - Filter for ignoring files/directories.
 /// * `sort` - Sorting strategy for children.
-pub fn load_tree(root: &PathBuf, max_depth: u32, current_depth: u32, filter: &IgnoreFilter, sort: SortMode) -> TreeNode {
+pub fn load_tree(
+    root: &PathBuf,
+    max_depth: u32,
+    current_depth: u32,
+    filter: &IgnoreFilter,
+    sort: SortMode,
+) -> TreeNode {
     let name = root
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -83,7 +89,8 @@ pub fn load_tree(root: &PathBuf, max_depth: u32, current_depth: u32, filter: &Ig
             children.sort_by(|a, b| {
                 let a_is_dir = a.path.is_dir();
                 let b_is_dir = b.path.is_dir();
-                b_is_dir.cmp(&a_is_dir)
+                b_is_dir
+                    .cmp(&a_is_dir)
                     .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
             });
         }
@@ -119,7 +126,16 @@ mod tests {
         let filter = IgnoreFilter::new(false, &[]);
         let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Name);
         let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
-        assert_eq!(names, vec!["apple.txt", "avocado", "banana.txt", "cherry", "excluded_dir"]);
+        assert_eq!(
+            names,
+            vec![
+                "apple.txt",
+                "avocado",
+                "banana.txt",
+                "cherry",
+                "excluded_dir"
+            ]
+        );
     }
 
     #[test]
@@ -129,7 +145,16 @@ mod tests {
         let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Kind);
         let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
         // Dirs (avocado, cherry, excluded_dir) come first, then files (apple.txt, banana.txt)
-        assert_eq!(names, vec!["avocado", "cherry", "excluded_dir", "apple.txt", "banana.txt"]);
+        assert_eq!(
+            names,
+            vec![
+                "avocado",
+                "cherry",
+                "excluded_dir",
+                "apple.txt",
+                "banana.txt"
+            ]
+        );
     }
 
     #[test]

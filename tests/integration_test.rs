@@ -59,8 +59,7 @@ fn test_basic_tree_rendering() {
     // 2. Execution: Run `kree` with `--no-color` to simplify output matching
     // We target the binary "kree" defined in Cargo.toml
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_kree"));
-    cmd.arg(root.to_str().unwrap())
-       .arg("--no-color");
+    cmd.arg(root.to_str().unwrap()).arg("--no-color");
 
     // 3. Assertion: Verify output contains key elements
     // Note: We use predicates to check for substrings because the exact tree characters
@@ -93,9 +92,9 @@ fn test_depth_limit() {
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_kree"));
     cmd.arg(root.to_str().unwrap())
-       .arg("--depth")
-       .arg("1")
-       .arg("--no-color");
+        .arg("--depth")
+        .arg("1")
+        .arg("--no-color");
 
     cmd.assert()
         .success()
@@ -115,21 +114,23 @@ fn test_hidden_files() {
 
     // Case 1: Default behavior (hidden files ignored)
     let mut cmd_default = Command::new(env!("CARGO_BIN_EXE_kree"));
-    cmd_default.arg(root.to_str().unwrap())
-               .arg("--no-color");
-    
-    cmd_default.assert()
+    cmd_default.arg(root.to_str().unwrap()).arg("--no-color");
+
+    cmd_default
+        .assert()
         .success()
         .stdout(predicate::str::contains("visible_file"))
         .stdout(predicate::str::contains(".hidden_file").not());
 
     // Case 2: With `--all` (show hidden files)
     let mut cmd_all = Command::new(env!("CARGO_BIN_EXE_kree"));
-    cmd_all.arg(root.to_str().unwrap())
-           .arg("--all")
-           .arg("--no-color");
-    
-    cmd_all.assert()
+    cmd_all
+        .arg(root.to_str().unwrap())
+        .arg("--all")
+        .arg("--no-color");
+
+    cmd_all
+        .assert()
         .success()
         .stdout(predicate::str::contains("visible_file"))
         .stdout(predicate::str::contains(".hidden_file"));
