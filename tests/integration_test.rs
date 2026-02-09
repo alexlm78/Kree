@@ -59,7 +59,10 @@ fn test_basic_tree_rendering() {
     // 2. Execution: Run `kree` with `--no-color` to simplify output matching
     // We target the binary "kree" defined in Cargo.toml
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_kree"));
-    cmd.arg(root.to_str().unwrap()).arg("--no-color");
+    cmd.arg(root.to_str().unwrap())
+        .arg("--depth")
+        .arg("2")
+        .arg("--no-color");
 
     // 3. Assertion: Verify output contains key elements
     // Note: We use predicates to check for substrings because the exact tree characters
