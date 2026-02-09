@@ -22,12 +22,8 @@ pub fn levenshtein(s1: &str, s2: &str) -> usize {
     let m = s1.len();
     let n = s2.len();
 
-    let mut prev = vec![0usize; n + 1];
+    let mut prev: Vec<usize> = (0..=n).collect();
     let mut curr = vec![0usize; n + 1];
-
-    for j in 0..=n {
-        prev[j] = j;
-    }
 
     for i in 1..=m {
         curr[0] = i;
