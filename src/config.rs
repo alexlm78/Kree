@@ -66,13 +66,10 @@ impl KreeConfig {
             Err(_) => return Self::default(),
         };
 
-        match toml::from_str(&contents) {
-            Ok(config) => config,
-            Err(e) => {
-                eprintln!("Warning: malformed ~/.kreerc: {e}");
-                Self::default()
-            }
-        }
+        toml::from_str(&contents).unwrap_or_else(|e| {
+            eprintln!("Warning: malformed ~/.kreerc: {e}");
+            Self::default()
+        })
     }
 
     /// Resolves the configured sort mode into a `SortMode` enum.
