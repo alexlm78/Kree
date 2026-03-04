@@ -2,6 +2,14 @@
 
 A directory tree visualizer and fuzzy finder for the terminal, written in Rust.
 
+## Project Structure
+
+This repository is managed as a Cargo Workspace:
+
+- **`kree_cli/`** — The core terminal tool (CLI).
+- **`www/`** — Official website built with Leptos (WASM).
+- **`docs/`** — Architecture, design specifications, and manuals.
+
 ## Features
 
 - **Tree visualization** — Renders directory structures using Unicode box-drawing characters (`├──`, `└──`, `│`).
@@ -17,11 +25,14 @@ A directory tree visualizer and fuzzy finder for the terminal, written in Rust.
 
 ## Installation
 
+### From Source (Workspace)
+To build the CLI tool from the repository:
+
 ```shell
-cargo build --release
+cargo build --release -p kree_cli
 ```
 
-The binary will be at `target/release/Kree`.
+The binary will be at `target/release/kree_cli`.
 
 ## Usage
 

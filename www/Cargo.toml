@@ -1,0 +1,12 @@
+[package]
+name = "kree-web"
+version = "0.1.7"
+edition = "2024"
+
+[dependencies]
+leptos = { version = "0.6", features = ["csr"] }
+leptos_meta = { version = "0.6", features = ["csr"] }
+leptos_router = { version = "0.6", features = ["csr"] }
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json"] }
+wasm-bindgen-futures = "0.4"

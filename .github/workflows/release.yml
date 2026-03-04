@@ -1,9 +1,9 @@
-name: Release Executables with Compression
+name: Release Executables
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v* '
 
 permissions:
   contents: write
@@ -18,19 +18,19 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive_name: kree-linux-x64.tar.gz
-            binary_path: target/x86_64-unknown-linux-gnu/release/kree
+            binary_name: kree_cli
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive_name: kree-win64.zip
-            binary_path: target/x86_64-pc-windows-msvc/release/kree.exe
+            binary_name: kree_cli.exe
           - os: macos-latest
             target: aarch64-apple-darwin
             archive_name: kree-macos-arm64.tar.gz
-            binary_path: target/aarch64-apple-darwin/release/kree
+            binary_name: kree_cli
           - os: macos-latest
             target: x86_64-apple-darwin
             archive_name: kree-macos-x64.tar.gz
-            binary_path: target/x86_64-apple-darwin/release/kree
+            binary_name: kree_cli
 
     steps:
       - name: Checkout code
@@ -44,18 +44,18 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Build Binary (Release mode)
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build Binary
+        run: cargo build --release --package kree_cli --target ${{ matrix.target }}
 
-      - name: Package Binary (Windows)
+      - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          powershell Compress-Archive -Path ${{ matrix.binary_path }} -DestinationPath ${{ matrix.archive_name }}
+          powershell Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.binary_name }} -DestinationPath ${{ matrix.archive_name }}
 
-      - name: Package Binary (Linux/macOS)
+      - name: Package (Linux/macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          tar -czf ${{ matrix.archive_name }} -C $(dirname ${{ matrix.binary_path }}) $(basename ${{ matrix.binary_path }})
+          tar -czf ${{ matrix.archive_name }} -C target/${{ matrix.target }}/release ${{ matrix.binary_name }}
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
