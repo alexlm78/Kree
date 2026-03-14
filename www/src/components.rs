@@ -1,6 +1,6 @@
+use crate::models::GitHubRepo;
 use leptos::*;
 use leptos_router::*;
-use crate::models::GitHubRepo;
 
 #[component]
 pub fn Navbar(repo_info: Resource<(), Option<GitHubRepo>>) -> impl IntoView {
@@ -13,8 +13,8 @@ pub fn Navbar(repo_info: Resource<(), Option<GitHubRepo>>) -> impl IntoView {
             <div class="flex gap-6 items-center">
                 <A href="/downloads" class="text-sm hover:text-blue-400 transition no-underline text-gray-400">"Downloads"</A>
                 <Transition fallback=|| view! { <span class="text-xs">"..."</span> }>
-                    {move || repo_info.get().map(|repo| repo.map(|r| view! { 
-                        <a href="https://github.com/alexlm78/Kree" target="_blank" 
+                    {move || repo_info.get().map(|repo| repo.map(|r| view! {
+                        <a href="https://github.com/alexlm78/Kree" target="_blank"
                            class="text-xs bg-[#161b22] px-3 py-1 rounded-full border border-[#30363d] text-white no-underline hover:border-yellow-500 transition">
                             "⭐ " {r.stargazers_count}
                         </a>

@@ -5,6 +5,13 @@ use clap::ValueEnum;
 
 use crate::ignore::IgnoreFilter;
 
+/// Options controlling which entries are included in the tree traversal.
+#[derive(Clone, Default)]
+pub struct TreeOptions {
+    /// Show only directories, excluding all files.
+    pub dirs_only: bool,
+}
+
 /// Specifies how entries should be sorted in the tree.
 #[derive(Clone, Copy, ValueEnum)]
 pub enum SortMode {
@@ -36,12 +43,14 @@ pub struct TreeNode {
 /// * `current_depth` - Current recursion depth (start with 0).
 /// * `filter` - Filter for ignoring files/directories.
 /// * `sort` - Sorting strategy for children.
+/// * `opts` - Additional traversal options (dirs-only, etc.).
 pub fn load_tree(
     root: &PathBuf,
     max_depth: u32,
     current_depth: u32,
     filter: &IgnoreFilter,
     sort: SortMode,
+    opts: &TreeOptions,
 ) -> TreeNode {
     let name = root
         .file_name()
@@ -77,7 +86,19 @@ pub fn load_tree(
         }
 
         let child_path = entry.path();
-        let child = load_tree(&child_path, max_depth, current_depth + 1, filter, sort);
+
+        if opts.dirs_only && !child_path.is_dir() {
+            continue;
+        }
+
+        let child = load_tree(
+            &child_path,
+            max_depth,
+            current_depth + 1,
+            filter,
+            sort,
+            opts,
+        );
         children.push(child);
     }
 
@@ -124,7 +145,14 @@ mod tests {
     fn sort_name_mixes_dirs_and_files() {
         let dir = setup_tree();
         let filter = IgnoreFilter::new(false, &[]);
-        let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Name);
+        let tree = load_tree(
+            &dir.path().to_path_buf(),
+            1,
+            0,
+            &filter,
+            SortMode::Name,
+            &TreeOptions::default(),
+        );
         let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
         assert_eq!(
             names,
@@ -142,7 +170,14 @@ mod tests {
     fn sort_kind_dirs_first() {
         let dir = setup_tree();
         let filter = IgnoreFilter::new(false, &[]);
-        let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Kind);
+        let tree = load_tree(
+            &dir.path().to_path_buf(),
+            1,
+            0,
+            &filter,
+            SortMode::Kind,
+            &TreeOptions::default(),
+        );
         let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
         // Dirs (avocado, cherry, excluded_dir) come first, then files (apple.txt, banana.txt)
         assert_eq!(
@@ -161,7 +196,14 @@ mod tests {
     fn depth_zero_returns_no_children() {
         let dir = setup_tree();
         let filter = IgnoreFilter::new(false, &[]);
-        let tree = load_tree(&dir.path().to_path_buf(), 0, 0, &filter, SortMode::Name);
+        let tree = load_tree(
+            &dir.path().to_path_buf(),
+            0,
+            0,
+            &filter,
+            SortMode::Name,
+            &TreeOptions::default(),
+        );
         assert!(tree.children.is_empty());
     }
 
@@ -169,7 +211,14 @@ mod tests {
     fn filter_excludes_ignored_entries() {
         let dir = setup_tree();
         let filter = IgnoreFilter::new(true, &["excluded_dir".to_string()]);
-        let tree = load_tree(&dir.path().to_path_buf(), 1, 0, &filter, SortMode::Name);
+        let tree = load_tree(
+            &dir.path().to_path_buf(),
+            1,
+            0,
+            &filter,
+            SortMode::Name,
+            &TreeOptions::default(),
+        );
         let names: Vec<&str> = tree.children.iter().map(|c| c.name.as_str()).collect();
         assert!(!names.contains(&"excluded_dir"));
         assert!(names.contains(&"apple.txt"));

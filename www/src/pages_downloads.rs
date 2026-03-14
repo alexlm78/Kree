@@ -1,13 +1,20 @@
+use crate::models::GitHubRelease;
 use leptos::*;
 use leptos_meta::*;
-use crate::models::GitHubRelease;
 
 #[component]
 pub fn DownloadsPage() -> impl IntoView {
-    let latest_release = create_resource(|| (), |_| async move {
-        reqwest::get("https://api.github.com/repos/alexlm78/Kree/releases/latest")
-            .await.ok()?.json::<GitHubRelease>().await.ok()
-    });
+    let latest_release = create_resource(
+        || (),
+        |_| async move {
+            reqwest::get("https://api.github.com/repos/alexlm78/Kree/releases/latest")
+                .await
+                .ok()?
+                .json::<GitHubRelease>()
+                .await
+                .ok()
+        },
+    );
 
     view! {
         <Title text="Kree | Downloads & Setup" />

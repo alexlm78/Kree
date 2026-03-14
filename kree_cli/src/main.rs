@@ -37,7 +37,7 @@ use config::KreeConfig;
 use ignore::IgnoreFilter;
 use render::{build_color_map, build_icon_map, render_tree};
 use search::{fuzzy_search, print_results};
-use tree::{SortMode, load_tree};
+use tree::{SortMode, TreeOptions, load_tree};
 
 /// Command Line Interface arguments parser for Kree.
 #[derive(Parser)]
@@ -79,6 +79,10 @@ struct Cli {
     #[arg(short = 't', long)]
     tui: bool,
 
+    /// Show only directories, hiding all files.
+    #[arg(long)]
+    dirs_only: bool,
+
     /// Generate shell completion script and exit.
     #[arg(long, value_enum)]
     completions: Option<Shell>,
@@ -102,6 +106,9 @@ fn main() {
     let no_color = cli.no_color || config.defaults.no_color.unwrap_or(false);
     let icons = cli.icons || config.defaults.icons.unwrap_or(false);
     let all = cli.all || config.defaults.all.unwrap_or(false);
+    let opts = TreeOptions {
+        dirs_only: cli.dirs_only,
+    };
 
     // Configure colored output
     if no_color {
@@ -119,7 +126,7 @@ fn main() {
         let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
         let color_map = build_color_map(&config.colors);
         let icon_map = build_icon_map(&config.icons);
-        let root = load_tree(&cli.path, depth, 0, &filter, sort);
+        let root = load_tree(&cli.path, depth, 0, &filter, sort, &opts);
         if let Err(e) = tui::run(
             root,
             cli.path.clone(),
@@ -128,6 +135,7 @@ fn main() {
             filter,
             sort,
             depth,
+            opts,
         ) {
             eprintln!("TUI error: {e}");
             process::exit(1);
@@ -147,7 +155,7 @@ fn main() {
         } else {
             None
         };
-        let root = load_tree(&cli.path, depth, 0, &filter, sort);
+        let root = load_tree(&cli.path, depth, 0, &filter, sort, &opts);
         render_tree(&root, &color_map, icon_map.as_ref());
     }
 }

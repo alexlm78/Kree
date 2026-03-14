@@ -21,7 +21,7 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 use crate::ignore::IgnoreFilter;
 use crate::render::{ColorMap, IconMap, icon_for_node, is_executable};
 use crate::search::levenshtein;
-use crate::tree::{SortMode, TreeNode, load_tree};
+use crate::tree::{SortMode, TreeNode, TreeOptions, load_tree};
 
 /// Represents a flattened entry in the tree for list-based rendering.
 struct FlatEntry {
@@ -66,6 +66,7 @@ struct App {
     filter: IgnoreFilter,
     sort: SortMode,
     max_depth: u32,
+    opts: TreeOptions,
     /// Content of the file preview pane.
     preview_content: Vec<String>,
     /// Error message for file preview (if any).
@@ -73,6 +74,7 @@ struct App {
 }
 
 impl App {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         tree: TreeNode,
         root_path: PathBuf,
@@ -81,6 +83,7 @@ impl App {
         filter: IgnoreFilter,
         sort: SortMode,
         max_depth: u32,
+        opts: TreeOptions,
     ) -> Self {
         let mut expanded = HashSet::new();
         expanded.insert(0); // root is always expanded
@@ -101,6 +104,7 @@ impl App {
             filter,
             sort,
             max_depth,
+            opts,
             preview_content: Vec::new(),
             preview_error: None,
         };
@@ -331,7 +335,14 @@ impl App {
     }
 
     fn reload_tree(&mut self) {
-        self.tree = load_tree(&self.root_path, self.max_depth, 0, &self.filter, self.sort);
+        self.tree = load_tree(
+            &self.root_path,
+            self.max_depth,
+            0,
+            &self.filter,
+            self.sort,
+            &self.opts,
+        );
         self.expanded.clear();
         self.expanded.insert(0);
         self.search_query.clear();
@@ -761,6 +772,7 @@ fn ui(frame: &mut ratatui::Frame, app: &mut App) {
 /// * `filter` - Ignore filter for reloading the tree.
 /// * `sort` - Sorting mode.
 /// * `max_depth` - Maximum depth for reloading the tree.
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     tree: TreeNode,
     root_path: PathBuf,
@@ -769,6 +781,7 @@ pub fn run(
     filter: IgnoreFilter,
     sort: SortMode,
     max_depth: u32,
+    opts: TreeOptions,
 ) -> io::Result<()> {
     // Setup terminal
     terminal::enable_raw_mode()?;
@@ -786,7 +799,7 @@ pub fn run(
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(
-        tree, root_path, color_map, icon_map, filter, sort, max_depth,
+        tree, root_path, color_map, icon_map, filter, sort, max_depth, opts,
     );
 
     // Main loop

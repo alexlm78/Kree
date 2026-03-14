@@ -301,6 +301,23 @@ pub(crate) fn is_executable(_path: &Path) -> bool {
     false
 }
 
+/// Counts directories and files in the tree recursively (excluding root).
+fn count_entries(node: &TreeNode) -> (usize, usize) {
+    let mut dirs = 0usize;
+    let mut files = 0usize;
+    for child in &node.children {
+        if child.path.is_dir() {
+            dirs += 1;
+        } else {
+            files += 1;
+        }
+        let (d, f) = count_entries(child);
+        dirs += d;
+        files += f;
+    }
+    (dirs, files)
+}
+
 /// Renders the directory tree to stdout.
 ///
 /// # Arguments
@@ -319,6 +336,8 @@ pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&Icon
         let mask = if is_last { 0b11u64 } else { 0b01u64 };
         render_node(child, 1, is_last, mask, color_map, icon_map);
     }
+    let (dirs, files) = count_entries(root);
+    println!("\n{dirs} directories, {files} files");
 }
 
 #[cfg(test)]

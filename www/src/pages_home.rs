@@ -2,12 +2,18 @@ use leptos::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {
-    let all_files = vec![("", "src/main.rs"), ("", "src/tree.rs"), ("⚙", "Cargo.toml"), ("", "README.md")];
+    let all_files = vec![
+        ("", "src/main.rs"),
+        ("", "src/tree.rs"),
+        ("⚙", "Cargo.toml"),
+        ("", "README.md"),
+    ];
     let (search, set_search) = create_signal(String::new());
 
     let filtered = move || {
         let s = search.get().to_lowercase();
-        all_files.iter()
+        all_files
+            .iter()
             .filter(|(_, f)| f.to_lowercase().contains(&s))
             .cloned()
             .collect::<Vec<_>>()
@@ -25,7 +31,7 @@ pub fn HomePage() -> impl IntoView {
 
             <section class="max-w-2xl mx-auto px-6 pb-24">
                 <div class="bg-[#161b22] p-4 rounded-t-xl border-x border-t border-[#30363d]">
-                    <input 
+                    <input
                         type="text" placeholder="Fuzzy search..."
                         class="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 text-white"
                         on:input=move |ev| set_search.set(event_target_value(&ev))
