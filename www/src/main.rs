@@ -1,28 +1,35 @@
-mod models;
 mod components;
-mod pages_home;
-mod pages_downloads;
+mod models;
 mod pages_404;
+mod pages_downloads;
+mod pages_home;
 
 use leptos::*;
-use leptos_router::*;
 use leptos_meta::*;
+use leptos_router::*;
 
 use crate::components::Navbar;
-use crate::pages_home::HomePage;
-use crate::pages_downloads::DownloadsPage;
-use crate::pages_404::NotFoundPage;
 use crate::models::GitHubRepo;
+use crate::pages_404::NotFoundPage;
+use crate::pages_downloads::DownloadsPage;
+use crate::pages_home::HomePage;
 
 #[component]
 fn App() -> impl IntoView {
     // 1. PRIMERO: Inicializar el contexto de metadatos
     provide_meta_context();
 
-    let repo_info = create_resource(|| (), |_| async move {
-        reqwest::get("https://api.github.com/repos/alexlm78/Kree")
-            .await.ok()?.json::<GitHubRepo>().await.ok()
-    });
+    let repo_info = create_resource(
+        || (),
+        |_| async move {
+            reqwest::get("https://api.github.com/repos/alexlm78/Kree")
+                .await
+                .ok()?
+                .json::<GitHubRepo>()
+                .await
+                .ok()
+        },
+    );
 
     view! {
         // 2. SEGUNDO: El Router debe envolver todo lo que use rutas o metadatos
