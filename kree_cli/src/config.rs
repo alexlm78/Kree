@@ -40,6 +40,8 @@ pub struct DefaultsConfig {
     pub all: Option<bool>,
     /// Default setting for showing icons.
     pub icons: Option<bool>,
+    /// Default setting for disabling .gitignore support.
+    pub no_gitignore: Option<bool>,
 }
 
 /// Configuration for ignore patterns.

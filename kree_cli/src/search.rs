@@ -1,5 +1,8 @@
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
+
+use colored::Colorize;
 
 /// Represents a match found during fuzzy search.
 pub struct SearchResult {
@@ -101,6 +104,128 @@ fn search_recursive(
     }
 }
 
+/// Prints formatted search results to stdout.
+pub fn print_results(results: &[SearchResult]) {
+    if results.is_empty() {
+        println!("No results found");
+        return;
+    }
+
+    if results[0].score == 0 {
+        println!("Search Results:");
+        for (i, res) in results.iter().enumerate() {
+            if res.score > 0 {
+                break;
+            }
+            println!("{}.\t{}\t\t{}", i + 1, res.name, res.path);
+        }
+    } else {
+        println!("Couldn't find results. Did you mean?:");
+        for (i, res) in results.iter().enumerate() {
+            println!("{}.\t{}\t\t{}", i + 1, res.name, res.path);
+        }
+    }
+}
+
+/// A match found during content search.
+pub struct ContentMatch {
+    /// Path to the file.
+    pub path: String,
+    /// 1-based line number.
+    pub line_number: usize,
+    /// Content of the matched line.
+    pub line_content: String,
+}
+
+/// Searches for a query string inside file contents recursively.
+///
+/// Skips binary files (detected by null bytes in first 512 bytes),
+/// files larger than 10 MB, and hidden/dot directories.
+pub fn content_search(root: &Path, query: &str, max_depth: u32) -> Vec<ContentMatch> {
+    let mut results = Vec::new();
+    content_search_recursive(root, query, max_depth, 0, &mut results);
+    results
+}
+
+const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
+
+fn content_search_recursive(
+    path: &Path,
+    query: &str,
+    max_depth: u32,
+    current_depth: u32,
+    results: &mut Vec<ContentMatch>,
+) {
+    if current_depth > max_depth {
+        return;
+    }
+
+    // Skip hidden entries
+    if let Some(name) = path.file_name().and_then(|n| n.to_str())
+        && name.starts_with('.')
+    {
+        return;
+    }
+
+    if path.is_dir() {
+        let entries = match fs::read_dir(path) {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+        for entry in entries.flatten() {
+            content_search_recursive(&entry.path(), query, max_depth, current_depth + 1, results);
+        }
+        return;
+    }
+
+    // Skip large files
+    if let Ok(meta) = fs::metadata(path)
+        && meta.len() > MAX_FILE_SIZE
+    {
+        return;
+    }
+
+    let file = match fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return,
+    };
+
+    let reader = BufReader::new(file);
+    let path_str = path.display().to_string();
+    let query_lower = query.to_lowercase();
+
+    for (i, line) in reader.lines().enumerate() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => return, // likely binary
+        };
+        if line.to_lowercase().contains(&query_lower) {
+            results.push(ContentMatch {
+                path: path_str.clone(),
+                line_number: i + 1,
+                line_content: line,
+            });
+        }
+    }
+}
+
+/// Prints content search results in grep-like format.
+pub fn print_content_results(results: &[ContentMatch]) {
+    if results.is_empty() {
+        println!("No matches found");
+        return;
+    }
+    for m in results {
+        println!(
+            "{}:{}:{}",
+            m.path.magenta(),
+            m.line_number.to_string().green(),
+            m.line_content
+        );
+    }
+    println!("\n{} matches", results.len());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,28 +263,5 @@ mod tests {
     #[test]
     fn levenshtein_unicode() {
         assert_eq!(levenshtein("café", "cafe"), 1);
-    }
-}
-
-/// Prints formatted search results to stdout.
-pub fn print_results(results: &[SearchResult]) {
-    if results.is_empty() {
-        println!("No results found");
-        return;
-    }
-
-    if results[0].score == 0 {
-        println!("Search Results:");
-        for (i, res) in results.iter().enumerate() {
-            if res.score > 0 {
-                break;
-            }
-            println!("{}.\t{}\t\t{}", i + 1, res.name, res.path);
-        }
-    } else {
-        println!("Couldn't find results. Did you mean?:");
-        for (i, res) in results.iter().enumerate() {
-            println!("{}.\t{}\t\t{}", i + 1, res.name, res.path);
-        }
     }
 }

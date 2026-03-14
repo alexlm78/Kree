@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::time::SystemTime;
 
 use colored::{ColoredString, Colorize};
 
@@ -332,6 +333,99 @@ fn count_entries(node: &TreeNode) -> (usize, usize) {
     (dirs, files)
 }
 
+/// Formats a file size in human-readable form.
+fn format_size(size: u64) -> String {
+    const KIB: u64 = 1024;
+    const MIB: u64 = 1024 * 1024;
+    const GIB: u64 = 1024 * 1024 * 1024;
+    if size >= GIB {
+        format!("{:.1}G", size as f64 / GIB as f64)
+    } else if size >= MIB {
+        format!("{:.1}M", size as f64 / MIB as f64)
+    } else if size >= KIB {
+        format!("{:.1}K", size as f64 / KIB as f64)
+    } else {
+        format!("{size}B")
+    }
+}
+
+/// Formats Unix permission bits as rwxrwxrwx string.
+#[cfg(unix)]
+fn format_mode(mode: u32) -> String {
+    let flags = [
+        (0o400, 'r'), (0o200, 'w'), (0o100, 'x'),
+        (0o040, 'r'), (0o020, 'w'), (0o010, 'x'),
+        (0o004, 'r'), (0o002, 'w'), (0o001, 'x'),
+    ];
+    flags.iter().map(|&(bit, ch)| if mode & bit != 0 { ch } else { '-' }).collect()
+}
+
+/// Formats a SystemTime as a short date string.
+fn format_time(time: &SystemTime) -> String {
+    let duration = time
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default();
+    let secs = duration.as_secs() as i64;
+
+    let days = secs / 86400;
+    let remaining = secs % 86400;
+    let hours = remaining / 3600;
+    let minutes = (remaining % 3600) / 60;
+
+    let (year, month, day) = days_to_ymd(days);
+    let months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    let month_str = months.get(month as usize).unwrap_or(&"???");
+    format!("{month_str} {day:2} {year} {hours:02}:{minutes:02}")
+}
+
+/// Converts days since Unix epoch to (year, month 0-indexed, day 1-indexed).
+fn days_to_ymd(mut days: i64) -> (i64, i64, i64) {
+    days += 719468;
+    let era = if days >= 0 { days } else { days - 146096 } / 146097;
+    let doe = (days - era * 146097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = if m <= 2 { y + 1 } else { y };
+    (year, m as i64 - 1, d as i64)
+}
+
+/// Formats the metadata suffix for a tree node.
+fn metadata_suffix(node: &TreeNode) -> String {
+    let Some(ref meta) = node.metadata else {
+        return String::new();
+    };
+
+    let mut parts = Vec::new();
+
+    #[cfg(unix)]
+    if let Some(mode) = meta.mode {
+        parts.push(format_mode(mode));
+    }
+
+    #[cfg(unix)]
+    if let Some(ref owner) = meta.owner {
+        parts.push(owner.clone());
+    }
+
+    if let Some(size) = meta.size {
+        parts.push(format!("{:>5}", format_size(size)));
+    }
+
+    if let Some(ref modified) = meta.modified {
+        parts.push(format_time(modified));
+    }
+
+    if parts.is_empty() {
+        return String::new();
+    }
+
+    format!("  {}", parts.join("  ").dimmed())
+}
+
 /// Renders the directory tree to stdout.
 ///
 /// # Arguments
@@ -341,9 +435,10 @@ fn count_entries(node: &TreeNode) -> (usize, usize) {
 /// * `icon_map` - Optional configuration for file icons.
 pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&IconMap>) {
     println!(
-        "└── {}{}",
+        "└── {}{}{}",
         colorize_name(&root.name, &root.path, color_map, icon_map),
-        symlink_suffix(root)
+        symlink_suffix(root),
+        metadata_suffix(root)
     );
     let child_count = root.children.len();
     for (i, child) in root.children.iter().enumerate() {
@@ -353,6 +448,54 @@ pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&Icon
     }
     let (dirs, files) = count_entries(root);
     println!("\n{dirs} directories, {files} files");
+}
+
+fn render_node(
+    node: &TreeNode,
+    depth: u32,
+    is_last: bool,
+    mask: u64,
+    color_map: &ColorMap,
+    icon_map: Option<&IconMap>,
+) {
+    for i in 0..depth {
+        if ((mask >> i) & 1) == 0 {
+            print!("│    ");
+        } else {
+            print!("     ");
+        }
+    }
+
+    if is_last {
+        print!("└── ");
+    } else {
+        print!("├── ");
+    }
+
+    println!(
+        "{}{}{}",
+        colorize_name(&node.name, &node.path, color_map, icon_map),
+        symlink_suffix(node),
+        metadata_suffix(node)
+    );
+
+    let child_count = node.children.len();
+    for (i, child) in node.children.iter().enumerate() {
+        let child_is_last = i == child_count - 1;
+        let new_mask = if child_is_last {
+            mask | (1u64 << (depth + 1))
+        } else {
+            mask
+        };
+        render_node(
+            child,
+            depth + 1,
+            child_is_last,
+            new_mask,
+            color_map,
+            icon_map,
+        );
+    }
 }
 
 #[cfg(test)]
@@ -440,52 +583,5 @@ mod tests {
         std::fs::write(&file_path, "hello").unwrap();
         std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o644)).unwrap();
         assert!(!is_executable(&file_path));
-    }
-}
-
-fn render_node(
-    node: &TreeNode,
-    depth: u32,
-    is_last: bool,
-    mask: u64,
-    color_map: &ColorMap,
-    icon_map: Option<&IconMap>,
-) {
-    for i in 0..depth {
-        if ((mask >> i) & 1) == 0 {
-            print!("│    ");
-        } else {
-            print!("     ");
-        }
-    }
-
-    if is_last {
-        print!("└── ");
-    } else {
-        print!("├── ");
-    }
-
-    println!(
-        "{}{}",
-        colorize_name(&node.name, &node.path, color_map, icon_map),
-        symlink_suffix(node)
-    );
-
-    let child_count = node.children.len();
-    for (i, child) in node.children.iter().enumerate() {
-        let child_is_last = i == child_count - 1;
-        let new_mask = if child_is_last {
-            mask | (1u64 << (depth + 1))
-        } else {
-            mask
-        };
-        render_node(
-            child,
-            depth + 1,
-            child_is_last,
-            new_mask,
-            color_map,
-            icon_map,
-        );
     }
 }

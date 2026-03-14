@@ -20,6 +20,7 @@
 //! - `tui`: Terminal User Interface implementation
 
 mod config;
+mod export;
 mod ignore;
 mod render;
 mod search;
@@ -27,17 +28,27 @@ mod tree;
 mod tui;
 
 use std::io;
+use std::fs;
 use std::path::PathBuf;
 use std::process;
 
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, Parser, ValueEnum};
 use clap_complete::Shell;
 
 use config::KreeConfig;
+use export::{export_json, export_markdown, export_yaml};
 use ignore::IgnoreFilter;
 use render::{build_color_map, build_icon_map, render_tree};
-use search::{fuzzy_search, print_results};
+use search::{content_search, fuzzy_search, print_content_results, print_results};
 use tree::{SortMode, TreeOptions, load_tree};
+
+/// Output format for tree export.
+#[derive(Clone, ValueEnum)]
+enum ExportFormat {
+    Json,
+    Yaml,
+    Markdown,
+}
 
 /// Command Line Interface arguments parser for Kree.
 #[derive(Parser)]
@@ -58,6 +69,10 @@ struct Cli {
     /// Fuzzy search query to find a specific file or directory name.
     #[arg(short, long)]
     find: Option<String>,
+
+    /// Search for a string inside file contents (grep-like).
+    #[arg(short, long)]
+    grep: Option<String>,
 
     /// Show hidden files and ignore .kreeignore patterns.
     #[arg(short, long)]
@@ -88,9 +103,25 @@ struct Cli {
     #[arg(short = 'e', long, value_delimiter = ',')]
     extensions: Vec<String>,
 
+    /// Show file metadata (size, permissions, date, owner).
+    #[arg(short = 'l', long)]
+    long: bool,
+
+    /// Export tree in a specific format instead of rendering.
+    #[arg(short = 'F', long, value_enum)]
+    format: Option<ExportFormat>,
+
+    /// Disable .gitignore rules (by default, .gitignore is respected).
+    #[arg(long)]
+    no_gitignore: bool,
+
     /// Generate shell completion script and exit.
     #[arg(long, value_enum)]
     completions: Option<Shell>,
+
+    /// Generate man page and print to stdout.
+    #[arg(long)]
+    man: bool,
 }
 
 fn main() {
@@ -102,15 +133,37 @@ fn main() {
         return;
     }
 
+    // Handle man page generation
+    if cli.man {
+        let cmd = Cli::command();
+        let man = clap_mangen::Man::new(cmd);
+        man.render(&mut io::stdout())
+            .expect("Failed to generate man page");
+        return;
+    }
+
     // Load configuration from file (e.g., ~/.kreerc)
     let config = KreeConfig::load();
 
     // Merge CLI arguments with configuration defaults
-    let depth = cli.depth.or(config.defaults.depth).unwrap_or(1);
+    let depth = cli.depth.or(config.defaults.depth).unwrap_or_else(|| {
+        // Smart default depth: expand more levels for small directories
+        let count = fs::read_dir(&cli.path)
+            .map(|entries| entries.filter_map(|e| e.ok()).count())
+            .unwrap_or(0);
+        if count <= 10 {
+            3
+        } else if count <= 30 {
+            2
+        } else {
+            1
+        }
+    });
     let sort = cli.sort.or(config.sort_mode()).unwrap_or(SortMode::Kind);
     let no_color = cli.no_color || config.defaults.no_color.unwrap_or(false);
     let icons = cli.icons || config.defaults.icons.unwrap_or(false);
     let all = cli.all || config.defaults.all.unwrap_or(false);
+    let use_gitignore = !cli.no_gitignore && !config.defaults.no_gitignore.unwrap_or(false);
     let opts = TreeOptions {
         dirs_only: cli.dirs_only,
         extensions: cli
@@ -118,6 +171,7 @@ fn main() {
             .iter()
             .map(|e| e.trim_start_matches('.').to_lowercase())
             .collect(),
+        show_metadata: cli.long,
     };
 
     // Configure colored output
@@ -133,7 +187,8 @@ fn main() {
 
     // Run in TUI mode if requested
     if cli.tui {
-        let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
+        let filter =
+            IgnoreFilter::with_gitignore(!all, &config.ignore.patterns, use_gitignore, &cli.path);
         let color_map = build_color_map(&config.colors);
         let icon_map = build_icon_map(&config.icons);
         let root = load_tree(&cli.path, depth, 0, &filter, sort, &opts);
@@ -151,14 +206,32 @@ fn main() {
             process::exit(1);
         }
     }
+    // Run content search if --grep is provided
+    else if let Some(query) = &cli.grep {
+        let results = content_search(&cli.path, query, depth);
+        print_content_results(&results);
+    }
     // Run fuzzy search if a query is provided
     else if let Some(query) = &cli.find {
         let results = fuzzy_search(&cli.path, query, depth);
         print_results(&results);
     }
+    // Export mode
+    else if let Some(format) = &cli.format {
+        let filter =
+            IgnoreFilter::with_gitignore(!all, &config.ignore.patterns, use_gitignore, &cli.path);
+        let root = load_tree(&cli.path, depth, 0, &filter, sort, &opts);
+        let output = match format {
+            ExportFormat::Json => export_json(&root),
+            ExportFormat::Yaml => export_yaml(&root),
+            ExportFormat::Markdown => export_markdown(&root),
+        };
+        print!("{output}");
+    }
     // Standard tree rendering mode
     else {
-        let filter = IgnoreFilter::new(!all, &config.ignore.patterns);
+        let filter =
+            IgnoreFilter::with_gitignore(!all, &config.ignore.patterns, use_gitignore, &cli.path);
         let color_map = build_color_map(&config.colors);
         let icon_map = if icons {
             Some(build_icon_map(&config.icons))

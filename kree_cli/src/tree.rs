@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 use clap::ValueEnum;
+use rayon::prelude::*;
 
 use crate::ignore::IgnoreFilter;
 
@@ -13,6 +15,8 @@ pub struct TreeOptions {
     /// If non-empty, only show files whose extension matches one of these (lowercase, no dot).
     /// Directories are always shown to preserve tree structure.
     pub extensions: Vec<String>,
+    /// Collect and display file metadata (size, permissions, modified date, owner).
+    pub show_metadata: bool,
 }
 
 /// Specifies how entries should be sorted in the tree.
@@ -22,6 +26,21 @@ pub enum SortMode {
     Name,
     /// Directories first, then files, each group sorted alphabetically.
     Kind,
+}
+
+/// File metadata collected during traversal.
+#[derive(Default)]
+pub struct NodeMetadata {
+    /// File size in bytes.
+    pub size: Option<u64>,
+    /// Last modification time.
+    pub modified: Option<SystemTime>,
+    /// Unix permission mode bits (e.g. 0o755).
+    #[cfg(unix)]
+    pub mode: Option<u32>,
+    /// Owner username.
+    #[cfg(unix)]
+    pub owner: Option<String>,
 }
 
 /// Represents a node in the directory tree.
@@ -36,6 +55,8 @@ pub struct TreeNode {
     pub is_symlink: bool,
     /// The target path of the symlink, if applicable.
     pub symlink_target: Option<PathBuf>,
+    /// Optional file metadata.
+    pub metadata: Option<NodeMetadata>,
 }
 
 /// Builds a tree structure from the filesystem starting at the given root.
@@ -78,12 +99,19 @@ pub fn load_tree(
         (symlink, target)
     };
 
+    let metadata = if opts.show_metadata {
+        collect_metadata(root)
+    } else {
+        None
+    };
+
     let mut node = TreeNode {
         name,
         path: root.clone(),
         children: Vec::new(),
         is_symlink,
         symlink_target,
+        metadata,
     };
 
     if current_depth >= max_depth {
@@ -99,44 +127,37 @@ pub fn load_tree(
         Err(_) => return node,
     };
 
-    let mut children: Vec<TreeNode> = Vec::new();
-
-    for entry in entries.flatten() {
-        let file_name = entry.file_name().to_string_lossy().into_owned();
-
-        if filter.is_ignored(&file_name) {
-            continue;
-        }
-
-        let child_path = entry.path();
-
-        if opts.dirs_only && !child_path.is_dir() {
-            continue;
-        }
-
-        // Extension filter: skip files whose extension is not in the list.
-        // Directories always pass through to preserve tree structure.
-        if !opts.extensions.is_empty() && !child_path.is_dir() {
-            let ext = child_path
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-            if !opts.extensions.contains(&ext) {
-                continue;
+    // Collect and filter entries first, then process in parallel
+    let filtered_paths: Vec<PathBuf> = entries
+        .flatten()
+        .filter(|entry| {
+            let file_name = entry.file_name().to_string_lossy().into_owned();
+            if filter.is_ignored(&file_name) {
+                return false;
             }
-        }
+            let child_path = entry.path();
+            if opts.dirs_only && !child_path.is_dir() {
+                return false;
+            }
+            if !opts.extensions.is_empty() && !child_path.is_dir() {
+                let ext = child_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+                if !opts.extensions.contains(&ext) {
+                    return false;
+                }
+            }
+            true
+        })
+        .map(|entry| entry.path())
+        .collect();
 
-        let child = load_tree(
-            &child_path,
-            max_depth,
-            current_depth + 1,
-            filter,
-            sort,
-            opts,
-        );
-        children.push(child);
-    }
+    let mut children: Vec<TreeNode> = filtered_paths
+        .par_iter()
+        .map(|child_path| load_tree(child_path, max_depth, current_depth + 1, filter, sort, opts))
+        .collect();
 
     match sort {
         SortMode::Name => {
@@ -155,6 +176,34 @@ pub fn load_tree(
     node.children = children;
 
     node
+}
+
+/// Collects file metadata for a given path.
+fn collect_metadata(path: &PathBuf) -> Option<NodeMetadata> {
+    let meta = fs::metadata(path).ok()?;
+    Some(NodeMetadata {
+        size: Some(meta.len()),
+        modified: meta.modified().ok(),
+        #[cfg(unix)]
+        mode: {
+            use std::os::unix::fs::PermissionsExt;
+            Some(meta.permissions().mode())
+        },
+        #[cfg(unix)]
+        owner: {
+            use std::os::unix::fs::MetadataExt;
+            let uid = meta.uid();
+            unsafe {
+                let pw = libc::getpwuid(uid);
+                if pw.is_null() {
+                    Some(uid.to_string())
+                } else {
+                    let name = std::ffi::CStr::from_ptr((*pw).pw_name);
+                    Some(name.to_string_lossy().into_owned())
+                }
+            }
+        },
+    })
 }
 
 #[cfg(test)]

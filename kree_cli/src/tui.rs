@@ -149,13 +149,42 @@ impl App {
     fn expand_or_enter(&mut self) {
         if let Some(entry) = self.entries.get(self.cursor)
             && entry.is_dir
-            && entry.has_children
         {
+            let path = entry.path.clone();
             let node_id = entry.node_id;
+
+            // Lazy load: if this directory has no children loaded yet, load them now
+            if !entry.has_children {
+                self.lazy_load_children(&path);
+            }
+
             self.expanded.insert(node_id);
             self.rebuild_entries();
             self.load_preview();
         }
+    }
+
+    /// Loads children for a directory node on demand (lazy loading).
+    fn lazy_load_children(&mut self, path: &PathBuf) {
+        // Build a small subtree for just this directory (1 level deep)
+        let subtree = load_tree(path, 1, 0, &self.filter, self.sort, &self.opts);
+        // Find the node in our tree and assign its children
+        if let Some(node) = Self::find_node_mut(&mut self.tree, path) {
+            node.children = subtree.children;
+        }
+    }
+
+    /// Recursively finds a mutable reference to a node by path.
+    fn find_node_mut<'a>(node: &'a mut TreeNode, target: &PathBuf) -> Option<&'a mut TreeNode> {
+        if &node.path == target {
+            return Some(node);
+        }
+        for child in &mut node.children {
+            if let Some(found) = Self::find_node_mut(child, target) {
+                return Some(found);
+            }
+        }
+        None
     }
 
     fn collapse_or_parent(&mut self) {
