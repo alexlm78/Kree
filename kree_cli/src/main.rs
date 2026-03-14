@@ -83,6 +83,11 @@ struct Cli {
     #[arg(long)]
     dirs_only: bool,
 
+    /// Filter by file extensions (comma-separated, e.g. rs,toml,md).
+    /// Directories are always shown to preserve tree structure.
+    #[arg(short = 'e', long, value_delimiter = ',')]
+    extensions: Vec<String>,
+
     /// Generate shell completion script and exit.
     #[arg(long, value_enum)]
     completions: Option<Shell>,
@@ -108,6 +113,11 @@ fn main() {
     let all = cli.all || config.defaults.all.unwrap_or(false);
     let opts = TreeOptions {
         dirs_only: cli.dirs_only,
+        extensions: cli
+            .extensions
+            .iter()
+            .map(|e| e.trim_start_matches('.').to_lowercase())
+            .collect(),
     };
 
     // Configure colored output

@@ -273,6 +273,20 @@ fn colorize_name(
     }
 }
 
+/// Returns a cyan-colored `" -> target"` suffix for symlinks, or empty string.
+fn symlink_suffix(node: &TreeNode) -> String {
+    if node.is_symlink {
+        let target = node
+            .symlink_target
+            .as_ref()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| "?".to_string());
+        format!(" {}", format!("-> {target}").cyan())
+    } else {
+        String::new()
+    }
+}
+
 fn colorize_by_extension(name: &str, path: &Path, color_map: &ColorMap) -> ColoredString {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
@@ -327,8 +341,9 @@ fn count_entries(node: &TreeNode) -> (usize, usize) {
 /// * `icon_map` - Optional configuration for file icons.
 pub fn render_tree(root: &TreeNode, color_map: &ColorMap, icon_map: Option<&IconMap>) {
     println!(
-        "└── {}",
-        colorize_name(&root.name, &root.path, color_map, icon_map)
+        "└── {}{}",
+        colorize_name(&root.name, &root.path, color_map, icon_map),
+        symlink_suffix(root)
     );
     let child_count = root.children.len();
     for (i, child) in root.children.iter().enumerate() {
@@ -451,8 +466,9 @@ fn render_node(
     }
 
     println!(
-        "{}",
-        colorize_name(&node.name, &node.path, color_map, icon_map)
+        "{}{}",
+        colorize_name(&node.name, &node.path, color_map, icon_map),
+        symlink_suffix(node)
     );
 
     let child_count = node.children.len();

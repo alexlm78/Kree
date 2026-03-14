@@ -34,6 +34,8 @@ struct FlatEntry {
     is_last_sibling: bool,
     node_id: usize,
     continuation_depths: HashSet<usize>,
+    is_symlink: bool,
+    symlink_target: Option<PathBuf>,
 }
 
 #[derive(PartialEq)]
@@ -447,6 +449,8 @@ fn flatten_recursive(
         is_last_sibling: is_last,
         node_id,
         continuation_depths: continuation_depths.clone(),
+        is_symlink: node.is_symlink,
+        symlink_target: node.symlink_target.clone(),
     });
 
     if is_expanded && is_dir {
@@ -655,6 +659,19 @@ fn render_tree_panel(app: &App, area: Rect) -> Paragraph<'static> {
         }
 
         spans.push(Span::styled(entry.name.clone(), final_style));
+
+        if entry.is_symlink {
+            let target_str = entry
+                .symlink_target
+                .as_ref()
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|| "?".to_string());
+            spans.push(Span::styled(
+                format!(" -> {target_str}"),
+                Style::default().fg(Color::Cyan),
+            ));
+        }
+
         lines.push(Line::from(spans));
     }
 
