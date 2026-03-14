@@ -111,7 +111,7 @@ pub fn export_json(node: &TreeNode) -> String {
 /// Exports the tree as YAML string.
 pub fn export_yaml(node: &TreeNode) -> String {
     let export = to_export_node(node);
-    serde_yaml::to_string(&export).unwrap_or_else(|e| format!("Error: {e}"))
+    serde_yml::to_string(&export).unwrap_or_else(|e| format!("Error: {e}"))
 }
 
 /// Exports the tree as a Markdown indented list.

@@ -4,10 +4,10 @@ use std::fs::{self, File};
 use std::path::Path;
 use tempfile::TempDir;
 
-/// Integration tests for Kree CLI.
-///
-/// These tests verify the behavior of the `kree` binary by creating temporary
-/// directory structures and asserting the output of the command.
+// Integration tests for Kree CLI.
+//
+// These tests verify the behavior of the `kree` binary by creating temporary
+// directory structures and asserting the output of the command.
 
 /// Helper function to create a file with empty content.
 ///
