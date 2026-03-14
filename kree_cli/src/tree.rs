@@ -10,6 +10,9 @@ use crate::ignore::IgnoreFilter;
 pub struct TreeOptions {
     /// Show only directories, excluding all files.
     pub dirs_only: bool,
+    /// If non-empty, only show files whose extension matches one of these (lowercase, no dot).
+    /// Directories are always shown to preserve tree structure.
+    pub extensions: Vec<String>,
 }
 
 /// Specifies how entries should be sorted in the tree.
@@ -29,6 +32,10 @@ pub struct TreeNode {
     pub path: PathBuf,
     /// List of children nodes (empty for files).
     pub children: Vec<TreeNode>,
+    /// True if this node is a symbolic link.
+    pub is_symlink: bool,
+    /// The target path of the symlink, if applicable.
+    pub symlink_target: Option<PathBuf>,
 }
 
 /// Builds a tree structure from the filesystem starting at the given root.
@@ -57,10 +64,26 @@ pub fn load_tree(
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| root.to_string_lossy().into_owned());
 
+    let (is_symlink, symlink_target) = {
+        let meta = fs::symlink_metadata(root);
+        let symlink = meta
+            .as_ref()
+            .map(|m| m.file_type().is_symlink())
+            .unwrap_or(false);
+        let target = if symlink {
+            fs::read_link(root).ok()
+        } else {
+            None
+        };
+        (symlink, target)
+    };
+
     let mut node = TreeNode {
         name,
         path: root.clone(),
         children: Vec::new(),
+        is_symlink,
+        symlink_target,
     };
 
     if current_depth >= max_depth {
@@ -89,6 +112,19 @@ pub fn load_tree(
 
         if opts.dirs_only && !child_path.is_dir() {
             continue;
+        }
+
+        // Extension filter: skip files whose extension is not in the list.
+        // Directories always pass through to preserve tree structure.
+        if !opts.extensions.is_empty() && !child_path.is_dir() {
+            let ext = child_path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            if !opts.extensions.contains(&ext) {
+                continue;
+            }
         }
 
         let child = load_tree(
