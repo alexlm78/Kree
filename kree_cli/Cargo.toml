@@ -1,6 +1,6 @@
 [package]
 name = "kree"
-version = "0.2.13"
+version = "1.0.0"
 edition = "2024"
 description = "A directory tree visualizer and fuzzy finder for the terminal"
 license = "MIT"

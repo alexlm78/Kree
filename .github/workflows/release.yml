@@ -3,7 +3,7 @@ name: Release Executables
 on:
   push:
     tags:
-      - 'v* '
+      - 'v*'
 
 permissions:
   contents: write
@@ -18,19 +18,19 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive_name: kree-linux-x64.tar.gz
-            binary_name: kree_cli
+            binary_name: kree
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive_name: kree-win64.zip
-            binary_name: kree_cli.exe
+            binary_name: kree.exe
           - os: macos-latest
             target: aarch64-apple-darwin
             archive_name: kree-macos-arm64.tar.gz
-            binary_name: kree_cli
+            binary_name: kree
           - os: macos-latest
             target: x86_64-apple-darwin
             archive_name: kree-macos-x64.tar.gz
-            binary_name: kree_cli
+            binary_name: kree
 
     steps:
       - name: Checkout code
@@ -45,7 +45,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build Binary
-        run: cargo build --release --package kree_cli --target ${{ matrix.target }}
+        run: cargo build --release --package kree --target ${{ matrix.target }}
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
