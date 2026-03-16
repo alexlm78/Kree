@@ -206,6 +206,65 @@ fn collect_metadata(path: &PathBuf) -> Option<NodeMetadata> {
     })
 }
 
+/// Calculates the maximum directory depth reachable from `root`.
+///
+/// Only counts directories (not files) as levels. Returns 0 if the root
+/// contains no subdirectories (after filtering). Respects all ignore and
+/// filter rules.
+///
+/// # Arguments
+///
+/// * `root` - The root directory path.
+/// * `max_depth` - Optional cap on traversal depth (the 60-level safety limit).
+/// * `current_depth` - Current recursion depth (start with 0).
+/// * `filter` - Filter for ignoring files/directories.
+/// * `opts` - Additional traversal options.
+pub fn count_max_depth(
+    root: &PathBuf,
+    max_depth: u32,
+    current_depth: u32,
+    filter: &IgnoreFilter,
+    opts: &TreeOptions,
+) -> u32 {
+    if current_depth >= max_depth || !root.is_dir() {
+        return current_depth;
+    }
+
+    let entries = match fs::read_dir(root) {
+        Ok(entries) => entries,
+        Err(_) => return current_depth,
+    };
+
+    let child_dirs: Vec<PathBuf> = entries
+        .flatten()
+        .filter(|entry| {
+            let file_name = entry.file_name().to_string_lossy().into_owned();
+            if filter.is_ignored(&file_name) {
+                return false;
+            }
+            let child_path = entry.path();
+            if !child_path.is_dir() {
+                return false;
+            }
+            // If extensions filter is active, only descend into dirs that
+            // could eventually contain matching files (we always descend,
+            // since we can't know without looking deeper).
+            true
+        })
+        .map(|entry| entry.path())
+        .collect();
+
+    if child_dirs.is_empty() {
+        return current_depth;
+    }
+
+    child_dirs
+        .par_iter()
+        .map(|child| count_max_depth(child, max_depth, current_depth + 1, filter, opts))
+        .max()
+        .unwrap_or(current_depth)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

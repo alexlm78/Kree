@@ -40,7 +40,7 @@ use export::{export_json, export_markdown, export_yaml};
 use ignore::IgnoreFilter;
 use render::{build_color_map, build_icon_map, render_tree};
 use search::{content_search, fuzzy_search, print_content_results, print_results};
-use tree::{SortMode, TreeOptions, load_tree};
+use tree::{SortMode, TreeOptions, count_max_depth, load_tree};
 
 /// Output format for tree export.
 #[derive(Clone, ValueEnum)]
@@ -122,6 +122,12 @@ struct Cli {
     /// Generate man page and print to stdout.
     #[arg(long)]
     man: bool,
+
+    /// Print the maximum directory depth and exit.
+    /// Only counts directories as levels. Useful to discover how deep
+    /// the tree goes before rendering with `-d`.
+    #[arg(short = 'L', long, conflicts_with_all = ["find", "grep", "tui", "format"])]
+    levels: bool,
 }
 
 fn main() {
@@ -146,19 +152,24 @@ fn main() {
     let config = KreeConfig::load();
 
     // Merge CLI arguments with configuration defaults
-    let depth = cli.depth.or(config.defaults.depth).unwrap_or_else(|| {
-        // Smart default depth: expand more levels for small directories
-        let count = fs::read_dir(&cli.path)
-            .map(|entries| entries.filter_map(|e| e.ok()).count())
-            .unwrap_or(0);
-        if count <= 10 {
-            3
-        } else if count <= 30 {
-            2
-        } else {
-            1
-        }
-    });
+    let depth = if cli.levels && cli.depth.is_none() {
+        // When counting levels without an explicit depth cap, scan fully (up to safety limit)
+        60
+    } else {
+        cli.depth.or(config.defaults.depth).unwrap_or_else(|| {
+            // Smart default depth: expand more levels for small directories
+            let count = fs::read_dir(&cli.path)
+                .map(|entries| entries.filter_map(|e| e.ok()).count())
+                .unwrap_or(0);
+            if count <= 10 {
+                3
+            } else if count <= 30 {
+                2
+            } else {
+                1
+            }
+        })
+    };
     let sort = cli.sort.or(config.sort_mode()).unwrap_or(SortMode::Kind);
     let no_color = cli.no_color || config.defaults.no_color.unwrap_or(false);
     let icons = cli.icons || config.defaults.icons.unwrap_or(false);
@@ -183,6 +194,15 @@ fn main() {
     if depth > 60 {
         println!("Depth overflow!!\nAre you serious?");
         process::exit(0);
+    }
+
+    // Print maximum directory depth and exit
+    if cli.levels {
+        let filter =
+            IgnoreFilter::with_gitignore(!all, &config.ignore.patterns, use_gitignore, &cli.path);
+        let max = count_max_depth(&cli.path, depth, 0, &filter, &opts);
+        println!("{max}");
+        return;
     }
 
     // Run in TUI mode if requested
