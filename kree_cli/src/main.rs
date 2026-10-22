@@ -27,8 +27,8 @@ mod search;
 mod tree;
 mod tui;
 
-use std::io;
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 use std::process;
 

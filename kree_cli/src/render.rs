@@ -353,11 +353,20 @@ fn format_size(size: u64) -> String {
 #[cfg(unix)]
 fn format_mode(mode: u32) -> String {
     let flags = [
-        (0o400, 'r'), (0o200, 'w'), (0o100, 'x'),
-        (0o040, 'r'), (0o020, 'w'), (0o010, 'x'),
-        (0o004, 'r'), (0o002, 'w'), (0o001, 'x'),
+        (0o400, 'r'),
+        (0o200, 'w'),
+        (0o100, 'x'),
+        (0o040, 'r'),
+        (0o020, 'w'),
+        (0o010, 'x'),
+        (0o004, 'r'),
+        (0o002, 'w'),
+        (0o001, 'x'),
     ];
-    flags.iter().map(|&(bit, ch)| if mode & bit != 0 { ch } else { '-' }).collect()
+    flags
+        .iter()
+        .map(|&(bit, ch)| if mode & bit != 0 { ch } else { '-' })
+        .collect()
 }
 
 /// Formats a SystemTime as a short date string.
@@ -373,7 +382,9 @@ fn format_time(time: &SystemTime) -> String {
     let minutes = (remaining % 3600) / 60;
 
     let (year, month, day) = days_to_ymd(days);
-    let months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    let months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
     let month_str = months.get(month as usize).unwrap_or(&"???");
     format!("{month_str} {day:2} {year} {hours:02}:{minutes:02}")
 }

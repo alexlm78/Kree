@@ -59,7 +59,10 @@ fn to_export_node(node: &TreeNode) -> ExportNode {
         permissions,
         #[cfg(unix)]
         owner,
-        symlink_target: node.symlink_target.as_ref().map(|p| p.display().to_string()),
+        symlink_target: node
+            .symlink_target
+            .as_ref()
+            .map(|p| p.display().to_string()),
         children: node.children.iter().map(to_export_node).collect(),
     }
 }
@@ -75,7 +78,11 @@ fn format_iso_time(time: &SystemTime) -> String {
     let minutes = (remaining % 3600) / 60;
     let seconds = remaining % 60;
     let (year, month, day) = days_to_ymd(days);
-    format!("{year}-{:02}-{:02}T{hours:02}:{minutes:02}:{seconds:02}Z", month + 1, day)
+    format!(
+        "{year}-{:02}-{:02}T{hours:02}:{minutes:02}:{seconds:02}Z",
+        month + 1,
+        day
+    )
 }
 
 fn days_to_ymd(mut days: i64) -> (i64, i64, i64) {
@@ -95,11 +102,20 @@ fn days_to_ymd(mut days: i64) -> (i64, i64, i64) {
 #[cfg(unix)]
 fn format_mode(mode: u32) -> String {
     let flags = [
-        (0o400, 'r'), (0o200, 'w'), (0o100, 'x'),
-        (0o040, 'r'), (0o020, 'w'), (0o010, 'x'),
-        (0o004, 'r'), (0o002, 'w'), (0o001, 'x'),
+        (0o400, 'r'),
+        (0o200, 'w'),
+        (0o100, 'x'),
+        (0o040, 'r'),
+        (0o020, 'w'),
+        (0o010, 'x'),
+        (0o004, 'r'),
+        (0o002, 'w'),
+        (0o001, 'x'),
     ];
-    flags.iter().map(|&(bit, ch)| if mode & bit != 0 { ch } else { '-' }).collect()
+    flags
+        .iter()
+        .map(|&(bit, ch)| if mode & bit != 0 { ch } else { '-' })
+        .collect()
 }
 
 /// Exports the tree as JSON string.
@@ -149,16 +165,14 @@ mod tests {
             is_symlink: false,
             symlink_target: None,
             metadata: None,
-            children: vec![
-                TreeNode {
-                    name: "file.txt".to_string(),
-                    path: PathBuf::from("/tmp/root/file.txt"),
-                    is_symlink: false,
-                    symlink_target: None,
-                    metadata: None,
-                    children: vec![],
-                },
-            ],
+            children: vec![TreeNode {
+                name: "file.txt".to_string(),
+                path: PathBuf::from("/tmp/root/file.txt"),
+                is_symlink: false,
+                symlink_target: None,
+                metadata: None,
+                children: vec![],
+            }],
         }
     }
 
