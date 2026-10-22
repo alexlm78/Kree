@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0d1117"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="10.5" fill="none" stroke="#30363d" stroke-width="3"/>
+  <!-- root dir -->
+  <rect x="11" y="11" width="30" height="8" rx="4" fill="#58a6ff"/>
+  <!-- trunk -->
+  <path d="M16 19V50" stroke="#8b949e" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- branches -->
+  <path d="M16 29H25M16 40H25M16 50H25" stroke="#8b949e" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- children: dir, exe, rust file -->
+  <rect x="28" y="25" width="25" height="8" rx="4" fill="#58a6ff"/>
+  <rect x="28" y="36" width="19" height="8" rx="4" fill="#3fb950"/>
+  <rect x="28" y="46" width="14" height="8" rx="4" fill="#f74c00"/>
+</svg>

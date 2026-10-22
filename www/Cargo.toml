@@ -2,6 +2,7 @@
 name = "kree-web"
 version = "0.1.7"
 edition = "2024"
+publish = false
 
 [dependencies]
 leptos = { version = "0.6", features = ["csr"] }
