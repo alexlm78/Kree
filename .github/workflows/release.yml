@@ -9,6 +9,101 @@ permissions:
   contents: write
 
 jobs:
+  publish-crate:
+    name: Publish to crates.io
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag matches crate version
+        run: |
+          crate_version=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.name == "kree") | .version')
+          if [ "v${crate_version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} != crate version v${crate_version}"
+            exit 1
+          fi
+
+      - name: Publish
+        run: cargo publish --package kree
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew tap
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute checksums of release archives
+        id: sums
+        run: |
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          for f in kree-macos-arm64 kree-macos-x64 kree-linux-x64; do
+            curl -fsSL "${base}/${f}.tar.gz" -o "${f}.tar.gz"
+            echo "${f//-/_}=$(sha256sum "${f}.tar.gz" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Checkout tap
+        uses: actions/checkout@v4
+        with:
+          repository: alexlm78/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Write formula
+        env:
+          VERSION: ${{ github.ref_name }}
+          SHA_MACOS_ARM64: ${{ steps.sums.outputs.kree_macos_arm64 }}
+          SHA_MACOS_X64: ${{ steps.sums.outputs.kree_macos_x64 }}
+          SHA_LINUX_X64: ${{ steps.sums.outputs.kree_linux_x64 }}
+        run: |
+          mkdir -p Formula
+          cat > Formula/kree.rb <<EOF
+          class Kree < Formula
+            desc "Directory tree visualizer and fuzzy finder for the terminal"
+            homepage "https://github.com/alexlm78/Kree"
+            version "${VERSION#v}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/alexlm78/Kree/releases/download/${VERSION}/kree-macos-arm64.tar.gz"
+                sha256 "${SHA_MACOS_ARM64}"
+              else
+                url "https://github.com/alexlm78/Kree/releases/download/${VERSION}/kree-macos-x64.tar.gz"
+                sha256 "${SHA_MACOS_X64}"
+              end
+            end
+
+            on_linux do
+              url "https://github.com/alexlm78/Kree/releases/download/${VERSION}/kree-linux-x64.tar.gz"
+              sha256 "${SHA_LINUX_X64}"
+            end
+
+            def install
+              bin.install "kree"
+              (man1/"kree.1").write Utils.safe_popen_read(bin/"kree", "--man")
+              generate_completions_from_executable(bin/"kree", "--completions")
+            end
+
+            test do
+              assert_match "directories", shell_output("#{bin}/kree -d 1")
+            end
+          end
+          EOF
+          sed -i 's/^          //' Formula/kree.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/kree.rb
+          git commit -m "kree ${GITHUB_REF_NAME}"
+          git push
+
   build:
     name: Build for ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
