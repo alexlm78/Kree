@@ -200,7 +200,7 @@ fn main() {
     if cli.levels {
         let filter =
             IgnoreFilter::with_gitignore(!all, &config.ignore.patterns, use_gitignore, &cli.path);
-        let max = count_max_depth(&cli.path, depth, 0, &filter, &opts);
+        let max = count_max_depth(&cli.path, depth, 0, &filter);
         println!("{max}");
         return;
     }

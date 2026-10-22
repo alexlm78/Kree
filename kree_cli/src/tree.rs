@@ -161,7 +161,7 @@ pub fn load_tree(
 
     match sort {
         SortMode::Name => {
-            children.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+            children.sort_by_key(|a| a.name.to_lowercase());
         }
         SortMode::Kind => {
             children.sort_by(|a, b| {
@@ -218,13 +218,11 @@ fn collect_metadata(path: &PathBuf) -> Option<NodeMetadata> {
 /// * `max_depth` - Optional cap on traversal depth (the 60-level safety limit).
 /// * `current_depth` - Current recursion depth (start with 0).
 /// * `filter` - Filter for ignoring files/directories.
-/// * `opts` - Additional traversal options.
 pub fn count_max_depth(
     root: &PathBuf,
     max_depth: u32,
     current_depth: u32,
     filter: &IgnoreFilter,
-    opts: &TreeOptions,
 ) -> u32 {
     if current_depth >= max_depth || !root.is_dir() {
         return current_depth;
@@ -260,7 +258,7 @@ pub fn count_max_depth(
 
     child_dirs
         .par_iter()
-        .map(|child| count_max_depth(child, max_depth, current_depth + 1, filter, opts))
+        .map(|child| count_max_depth(child, max_depth, current_depth + 1, filter))
         .max()
         .unwrap_or(current_depth)
 }

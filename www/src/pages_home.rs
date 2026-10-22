@@ -2,7 +2,7 @@ use leptos::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {
-    let all_files = vec![
+    let all_files = [
         ("", "src/main.rs"),
         ("", "src/tree.rs"),
         ("⚙", "Cargo.toml"),
