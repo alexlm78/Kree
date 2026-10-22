@@ -33,16 +33,26 @@ This repository is managed as a Cargo Workspace:
 
 ### From crates.io
 
+Requires a [Rust toolchain](https://rustup.rs). Works on Linux, macOS and Windows.
+
 ```shell
 cargo install kree
 ```
 
-### Homebrew (macOS)
+### Homebrew (macOS and Linux)
 
 ```shell
-brew tap alexlm78/kree
+brew install alexlm78/tap/kree
+```
+
+Or add the tap first:
+
+```shell
+brew tap alexlm78/tap
 brew install kree
 ```
+
+The formula installs the pre-built binary, the man page and shell completions.
 
 ### From Source (Workspace)
 
