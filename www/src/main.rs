@@ -40,11 +40,12 @@ fn App() -> impl IntoView {
             // Título por defecto si las páginas no definen uno
             <Title text="Kree | Tree Visualizer" />
 
-            <div class="min-h-screen bg-[#0d1117] text-[#c9d1d9] font-mono">
+            <div>
                 <Navbar repo_info=repo_info />
                 <main>
                     <Routes>
                         <Route path="/" view=HomePage />
+                        <Route path="/index.html" view=HomePage />
                         <Route path="/downloads" view=DownloadsPage />
                         <Route path="/*any" view=NotFoundPage />
                     </Routes>

@@ -1,23 +1,16 @@
+use crate::components::Footer;
 use leptos::*;
 use leptos_router::*;
 
 #[component]
 pub fn NotFoundPage() -> impl IntoView {
     view! {
-        <div class="max-w-5xl mx-auto py-20 px-6 text-center font-mono">
-            <div class="inline-block bg-[#161b22] border border-red-500/50 p-8 rounded-2xl shadow-2xl">
-                <h2 class="text-6xl font-black text-red-500 mb-4">"404"</h2>
-                <p class="text-white text-xl mb-6">"[ERROR]: Path not found in tree"</p>
-
-                <div class="bg-black p-4 rounded border border-[#30363d] text-left mb-8">
-                    <p class="text-gray-500">"$ kree --check-route"</p>
-                    <p class="text-red-400">"Error: The requested directory does not exist."</p>
-                </div>
-
-                <A href="/" class="text-blue-400 hover:underline">
-                    "center" " Return to root_dir"
-                </A>
-            </div>
+        <div class="wrap nf rise">
+            <h1>"404"</h1>
+            <p class="lede">"This path is not in the tree."</p>
+            <pre class="out" style="margin-top:28px;max-width:520px"><span class="pre">"$ "</span>"kree -f this-page\n"<span class="m">"no matches found"</span></pre>
+            <div class="cta-row"><A href="/" class="btn">"Back to the root"</A></div>
         </div>
+        <Footer/>
     }
 }
